@@ -1,4 +1,5 @@
 # Tutorial: Creating a Cool Mailbox Viewer in Command Modern Operations (CMO) Using Lua
+![imagen](https://github.com/user-attachments/assets/64276254-3c85-4808-b5e9-2d8e813e9b7a)
 
 In this tutorial, we will learn how to create an interactive mailbox viewer in **Command Modern Operations (CMO)** using Lua scripting. The goal is to provide scenario designers a tool that displays notifications to players in the form of emails, which they can interact with and read both new and older messages.
 
