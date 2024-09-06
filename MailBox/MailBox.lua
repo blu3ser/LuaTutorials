@@ -316,7 +316,8 @@ end
 
 -- EXAMPLE
 --[[
-The following example creates 4 mails and show the MailBox in the last one. You can display every mail being sent but if you want to send two or more, you can just display only the last one
+The following example creates 4 mails and show the MailBox in the last one. You can display every mail being sent but if you want to send two or more, 
+you can just display only the last one
 ]]
 local MailBox = {}
 
