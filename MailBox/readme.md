@@ -15,7 +15,7 @@ This will be accomplished by building an email class in Lua, storing emails in a
 ---
 ## 1. Creating the `Mail` Class
 
-The first step is to define the `Mail` class. This class represents each email, with fields for the date, sender, recipient, subject, message content, and priority. Having a class in lua let you create new Mail object easily and use the methods.
+The first step is to define the `Mail` class. This class represents each email, with fields for the date, sender, recipient, subject, message content, and priority. Having a class in lua let you create new Mail object easily and use the methods to handle all the actions related with the `Mail` class.
 
 ### Lua Code for the `Mail` Class
 
