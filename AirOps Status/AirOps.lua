@@ -344,7 +344,7 @@ AIROPS_HTML_TEMPLATE=[[
 </div>
     <script>
     // Los datos JSON (aquí debes colocar tus datos)
-    var data = %s;
+    var data =  %s;
     var missions = %s;
     const airTypes ={
       "1001" : "None",
@@ -384,230 +384,224 @@ AIROPS_HTML_TEMPLATE=[[
       "8902" : "Aerostat",
       "8903" : "Balloon"
     }; 
-    // Obtener gstypes únicos
-function getUniqueGstypes(data) {
-  const gstypes = data.map(item => item.gstype);
-  return [...new Set(gstypes)];
-}
-
-      // Función para llenar el filtro dinámico de gstype, ordenado alfabéticamente por el nombre del airType
-      function populateGstypeFilter() {
-        let uniqueGstypes = getUniqueGstypes(data);
-        
-        // Crear un array de objetos con gstype y su correspondiente nombre en airTypes
-        let gstypeOptions = uniqueGstypes
-            .filter(gstype => airTypes[gstype])  // Filtrar solo los gstypes que tengan una correspondencia en airTypes
-            .map(gstype => {
-                return {
-                    gstype: gstype,
-                    name: airTypes[gstype] // Mapea al nombre correspondiente en airTypes
-                };
-            });
-
-        // Ordenar alfabéticamente por el nombre (no por gstype)
-        gstypeOptions = gstypeOptions.sort((a, b) => a.name.localeCompare(b.name));
-
-        const select = $('#gstypeFilter');
-        
-        // Llenar el select con los valores ordenados alfabéticamente
-        gstypeOptions.forEach(option => {
-            select.append('<option value="' + option.gstype + '">' + option.name + '</option>');
-        });
-      }
-    // Función para obtener los valores únicos de msubtype
-    function getUniqueMsubtypes(missions) {
-        const msubtypes = missions.map(mission => mission.msubtype);
-        return [...new Set(msubtypes)].sort();
-    }
-
-    // Función para obtener el tipo de misión basado en el nombre de la misión
-    function getMsubtypeByMissionName(missionName) {
-        const mission = missions.find(m => m.name === missionName);
-        return mission ? mission.msubtype : 'Desconocido';
-    }
-    // Función para llenar el filtro dinámico de msubtype
-    function populateMsubtypeFilter() {
-        const uniqueMsubtypes = getUniqueMsubtypes(missions);
-        const select = $('#msubtypeFilter');
-        uniqueMsubtypes.forEach(msubtype => {
-            select.append('<option value="' + msubtype + '">' + msubtype + '</option>');
-        });
-    }
-  // Función para agregar filas a la tabla
-   
-
-      // Función para agregar filas a la tabla
-    function addRows(filteredData = data) {
-      $('#statusTable tbody').empty();
+    let table
+    $(document).ready(function() {
+      // Inicializar DataTables sin datos inicialmente
+          table = $('#statusTable').DataTable({
+          searching: true,
+          ordering: true,
+          autoWidth: true,
+          paging: false,
+          columns: [
+              { title: "Name" },
+              { title: "Type Class" },
+              { title: "Mission" },
+              { title: "Loadout" },
+              { title: "Airborne Time" },
+              { title: "Fuel" }
+          ]
+      });
+  
+      // Inicializar la tabla y los filtros al cargar la página
+      initializeTableAndFilters();
+  
+      // Manejar eventos de los filtros
+      $('#gstypeFilter, #missionNameFilter').on('change', filterData);
+      $('#msubtypeFilter').on('change', handleMsubtypeFilterChange);
+  
+      // Manejar el clic en las filas de la tabla para abrir el modal
+      $('#statusTable tbody').on('click', 'tr', function() {
+          const unitId = $(this).data('id');
+          const unitInfo = data.find(item => item.id === unitId);
+          
+          if (unitInfo) {
+              openModal(unitInfo);
+          }
+      });
+  
+      // Cerrar el modal al hacer clic en el botón de cerrar (x) o fuera del modal
+      $('.close').on('click', closeModal);
+      window.onclick = function(event) {
+          const modal = document.getElementById("unitModal");
+          if (event.target === modal) {
+              closeModal();
+          }
+      };
+  });
+  
+  // Función para inicializar la tabla y los filtros
+  function initializeTableAndFilters() {
+      populateGstypeFilter();
+      populateMsubtypeFilter();
+      updateTable(data);  // Mostrar todos los datos al inicio
+  }
+  
+  // Llenar el filtro de `gstype`
+  function populateGstypeFilter() {
+      let uniqueGstypes = getUniqueGstypes(data);
+      let gstypeOptions = uniqueGstypes
+          .filter(gstype => airTypes[gstype])
+          .map(gstype => {
+              return {
+                  gstype: gstype,
+                  name: airTypes[gstype]
+              };
+          });
       
-      filteredData.forEach(function(item) {
-            var fuelInfo;
-            if (item.max_fuel == 0) {
-                fuelInfo = 'N/A'; // Mostrar N/A si el combustible máximo es 0
-            } else {
-                var fuelPercentage = (item.current_fuel / item.max_fuel * 100).toFixed(2); // Calcula el porcentaje de combustible
-                fuelInfo = '<div class="fuel-bar">' +
-                           '<div class="fuel-fill" style="width:' + fuelPercentage + '%%;">' +
-                           '</div>' +
-                           '<span class="fuel-percentage">' + fuelPercentage + '%%</span>' +
-                           '</div>';
-            }
-            var row = `
-              <tr data-id="${item.id}">
-                  <td>${item.name}</td>
-                  <td>${item.type_class}</td>
-                  <td>${item.mission}</td>
-                  <td>${item.loadout}</td>
-                  <td>${item.airborne_t}</td>
-                  <td>${fuelInfo}</td>
-              </tr>`;
-            $('#statusTable tbody').append(row);
-        });
-    }
-
-    function filterData() {
-      const selectedGstype = $('#gstypeFilter').val();  // Obtener el valor del filtro de gstype
-      const selectedMsubtype = $('#msubtypeFilter').val();  // Obtener el valor del filtro de msubtype
-      const selectedMissionName = $('#missionNameFilter').val();  // Obtener el valor del filtro de nombre de misión
-      
-      let filteredMissions = missions;
+      gstypeOptions = gstypeOptions.sort((a, b) => a.name.localeCompare(b.name));
   
-      // Si se ha seleccionado un msubtype, obtener las misiones que coincidan
-      if (selectedMsubtype) {
-          filteredMissions = missions.filter(mission => mission.msubtype === selectedMsubtype);
-      }
+      const select = $('#gstypeFilter');
+      select.empty(); // Vaciar opciones anteriores
+      select.append('<option value="">All</option>'); // Añadir opción "Todos"
+      gstypeOptions.forEach(option => {
+          select.append('<option value="' + option.gstype + '">' + option.name + '</option>');
+      });
+  }
   
-      // Obtener los nombres de misión que coinciden con el msubtype filtrado
-      const missionNames = filteredMissions.map(mission => mission.name);
+  // Llenar el filtro de `msubtype`
+  function populateMsubtypeFilter() {
+      const uniqueMsubtypes = getUniqueMsubtypes(missions);
+      const select = $('#msubtypeFilter');
+      select.empty(); // Vaciar opciones anteriores
+      select.append('<option value="">All</option>'); // Añadir opción "Todos"
+      uniqueMsubtypes.forEach(msubtype => {
+          select.append('<option value="' + msubtype + '">' + msubtype + '</option>');
+      });
+  }
   
-      // Si se ha seleccionado un nombre de misión, aplicar ese filtro
-      if (selectedMissionName) {
-          filteredMissions = filteredMissions.filter(mission => mission.name === selectedMissionName);
-      }
+  // Llenar el filtro de `missionName`
+  function populateMissionNameFilter(missionNames) {
+      const select = $('#missionNameFilter');
+      select.empty(); // Vaciar opciones anteriores
+      select.append('<option value="">All</option>'); // Añadir opción "Todos"
+      missionNames.forEach(name => {
+          select.append('<option value="' + name + '">' + name + '</option>');
+      });
+  }
   
-      // Filtrar los datos de aeronaves
+  // Función para filtrar los datos según los filtros seleccionados
+  function filterData() {
+      const selectedGstype = $('#gstypeFilter').val();
+      const selectedMsubtype = $('#msubtypeFilter').val();
+      const selectedMissionName = $('#missionNameFilter').val();
+  
       const filteredData = data.filter(item => {
-          const gstypeMatch = !selectedGstype || item.gstype.toString() === selectedGstype;
-          const msubtypeMatch = !selectedMsubtype || missionNames.includes(item.mission);
+          const gstypeMatch = !selectedGstype || airTypes[item.gstype] === airTypes[selectedGstype];
+          const msubtypeMatch = !selectedMsubtype || getMsubtypeByMissionName(item.mission) === selectedMsubtype;
           const missionNameMatch = !selectedMissionName || item.mission === selectedMissionName;
-  
           return gstypeMatch && msubtypeMatch && missionNameMatch;
       });
   
-      // Actualizar la tabla con los datos filtrados
-      addRows(filteredData);
+      updateTable(filteredData); // Actualizar la tabla con los datos filtrados
   }
   
-  // Función para mostrar/ocultar el filtro de nombre de misión y llenarlo
+  // Actualizar la tabla con los datos filtrados
+  function updateTable(filteredData) {
+      table.clear();  // Limpiar la tabla actual
+      
+      // Convertir los datos filtrados en el formato que espera DataTables
+      filteredData.forEach(function(item) {
+          const fuelPercentage = item.max_fuel > 0 ? (item.current_fuel / item.max_fuel * 100).toFixed(2) : 'N/A';
+          const fuelInfo = item.max_fuel > 0 
+              ? `<div class="fuel-bar">
+                  <div class="fuel-fill" style="width:${fuelPercentage}%%"></div>
+                  <span class="fuel-percentage">${fuelPercentage}%%</span>
+                </div>`
+              : 'N/A';
+
+          // Agregar la fila a DataTables con el ID de la unidad como parte de los datos del DOM
+          table.row.add([
+              item.name || 'N/A',
+              item.type_class || 'N/A',
+              item.mission || 'N/A',
+              item.loadout || 'N/A',
+              item.airborne_t || 'N/A',
+              fuelInfo
+          ]).node().setAttribute('data-id', item.id);  // Asignar `data-id` a cada fila
+      });
+
+      // Redibujar la tabla con los datos filtrados
+      table.draw();
+  }
+  
+  // Manejar el cambio en el filtro de `msubtype`
   function handleMsubtypeFilterChange() {
       const selectedMsubtype = $('#msubtypeFilter').val();
-      
-      if (selectedMsubtype) {
-        // Mostrar el div del filtro de nombre de misión
-        $('#missionNameFilterDiv').show();
-
-        // Llenar el filtro de nombres de misión basados en el msubtype seleccionado
-        const filteredMissions = missions.filter(mission => mission.msubtype === selectedMsubtype);
-        const missionNames = [...new Set(filteredMissions.map(mission => mission.name))].sort(); // Nombres únicos
-
-        // Limpiar y rellenar el select con los nombres de misión
-        $('#missionNameFilter').empty().append('<option value="">All</option>');
-        missionNames.forEach(name => {
-            $('#missionNameFilter').append('<option value="' + name + '">' + name + '</option>');
-        });
-    } else {
-        // Ocultar el div del filtro de nombre de misión si no hay msubtype seleccionado
-        $('#missionNameFilterDiv').hide();
-    }
   
-      // Actualizar los datos filtrados de acuerdo al msubtype seleccionado
-      filterData();  // Filtrar la tabla directamente después de cambiar el filtro de msubtype
+      if (selectedMsubtype) {
+          const filteredMissions = missions.filter(mission => mission.msubtype === selectedMsubtype);
+          const missionNames = [...new Set(filteredMissions.map(mission => mission.name))].sort();
+          populateMissionNameFilter(missionNames);  // Llenar el filtro de nombres de misión
+          $('#missionNameFilterDiv').show();
+      } else {
+          $('#missionNameFilterDiv').hide();
+      }
+  
+      filterData();  // Aplicar el filtro al cambiar el subtipo de misión
   }
-      // Función para abrir el modal con información y mapa
-function openModal(unitInfo) {
-    // Mostrar el modal
-    const modal = document.getElementById("unitModal");
-    modal.style.display = "block";
-
-    // Insertar información de la unidad en el modal (columna izquierda)
-    const unitInfoDiv = document.getElementById("unitInfo");
-    unitInfoDiv.innerHTML = `
-            <h2>Unit Info</h2>
-            <p><strong>Name:</strong> ${unitInfo.name}</p>
-            <p><strong>Type:</strong> ${airTypes[unitInfo.gstype]}</p>
-            <p><strong>Class:</strong> ${unitInfo.type_class}</p>
-            <p><strong>Mission:</strong> ${unitInfo.mission}</p>
-            
-            <p><strong>Airborne Time:</strong> ${unitInfo.airborne_t}</p>
-            <p><strong>Fuel:</strong> ${unitInfo.current_fuel.toFixed(2)} kg / ${unitInfo.max_fuel} kg</p>
-            <p><strong>Base:</strong> ${unitInfo.base}</p>
-            <p><strong>Condition:</strong> ${unitInfo.condition}</p>
-        <!-- Columna derecha con el mapa -->
-        
-    `;
-
-        // Configurar el mapa solo si hay latitud y longitud
-        if (unitInfo.lat && unitInfo.lon) {
-            const map = L.map('map').setView([unitInfo.lat, unitInfo.lon], 5);
-
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 14
-            }).addTo(map);
-
-            L.marker([unitInfo.lat, unitInfo.lon]).addTo(map)
-                .bindPopup(`${unitInfo.name}`);
-        }
-    }
+  
+  // Función para abrir el modal con detalles de la unidad
+  function openModal(unitInfo) {
+      const modal = document.getElementById("unitModal");
+      const unitInfoDiv = document.getElementById("unitInfo");
+  
+      if (modal && unitInfoDiv) {
+          modal.style.display = "block";
+          unitInfoDiv.innerHTML = `
+              <h2>Unit Info</h2>
+              <p><strong>Name:</strong> ${unitInfo.name}</p>
+              <p><strong>Type:</strong> ${airTypes[unitInfo.gstype]}</p>
+              <p><strong>Class:</strong> ${unitInfo.type_class}</p>
+              <p><strong>Mission:</strong> ${unitInfo.mission}</p>
+              <p><strong>Airborne Time:</strong> ${unitInfo.airborne_t}</p>
+              <p><strong>Fuel:</strong> ${unitInfo.current_fuel} / ${unitInfo.max_fuel}</p>
+              <p><strong>Base:</strong> ${unitInfo.base}</p>
+          `;
+  
+          // Si la unidad tiene coordenadas de latitud y longitud, mostrar el mapa
+          if (unitInfo.lat && unitInfo.lon) {
+              const map = L.map('map').setView([unitInfo.lat, unitInfo.lon], 5);
+              L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                  maxZoom: 14
+              }).addTo(map);
+              L.marker([unitInfo.lat, unitInfo.lon]).addTo(map)
+                  .bindPopup(`${unitInfo.name}`);
+          }
+      } else {
+          console.error("Modal or unit info container not found in the DOM");
+      }
+  }
+  
   // Función para cerrar el modal
   function closeModal() {
-    const modal = document.getElementById("unitModal");
-    modal.style.display = "none";
+      const modal = document.getElementById("unitModal");
+      if (modal) {
+          modal.style.display = "none";
+      } else {
+          console.error("Modal not found in the DOM");
+      }
   }
-  $(document).ready(function() {
-    $('#statusTable tbody').on('click', 'tr', function() {
-        // Obtener el ID de la unidad desde el `data-id` de la fila
-        const unitId = $(this).data('id');
-        
-        // Buscar la unidad correspondiente en los datos
-        const unitInfo = data.find(item => item.id === unitId);
-        
-        if (unitInfo) {
-            openModal(unitInfo); // Abrir el modal con la información correcta
-        }
-    });
-
-    // Manejar el cierre del modal al hacer clic en el botón de cerrar (x)
-    $('.close').on('click', closeModal);
-
-    // Cerrar el modal al hacer clic fuera de la ventana de contenido
-    window.onclick = function(event) {
-        const modal = document.getElementById("unitModal");
-        if (event.target === modal) {
-            closeModal();
-        }
-    };
-      // Inicializar los filtros
-      populateGstypeFilter();
-      populateMsubtypeFilter();
-      addRows();  // Mostrar todas las filas al inicio
   
-      // Manejar los cambios en los filtros
-      $('#gstypeFilter, #missionNameFilter').on('change', filterData);  // Filtros de gstype y mission name
-      $('#msubtypeFilter').on('change', handleMsubtypeFilterChange);  // Filtro de msubtype que además activa el filtro de mission name
-      $('#statusTable').DataTable({
-        searching: true,
-        ordering: true,
-        autoWidth: true,
-        fixedHeader: true,
-        scrollCollapse: false,
-        paging: false
-    });
-  });
-    
+  // Función para obtener el subtipo de misión por nombre de misión
+  function getMsubtypeByMissionName(missionName) {
+      const mission = missions.find(m => m.name === missionName);
+      return mission ? mission.msubtype : 'Desconocido';
+  }
+  
+  // Función para obtener gstypes únicos
+  function getUniqueGstypes(data) {
+      const gstypes = data.map(item => item.gstype);
+      return [...new Set(gstypes)];
+  }
+  
+  // Función para obtener msubtypes únicos
+  function getUniqueMsubtypes(missions) {
+      const msubtypes = missions.map(mission => mission.msubtype);
+      return [...new Set(msubtypes)].sort();
+  }
   </script>
 </body>
 </html>
-
 ]]
 
 --- Get the current fuel and max fuel of the unit.
