@@ -1,5 +1,8 @@
 
 # Retrieving Data Using Lua in Command Modern Operations and Displaying It via HTML Templates
+![imagen](https://github.com/user-attachments/assets/8c2568f2-9033-4638-8a7a-d68eac80cd48)
+![imagen](https://github.com/user-attachments/assets/53aef8e7-d712-4ffb-9c2c-ffdd1741c63b)
+
 
 In this tutorial, we’ll walk through writing a Lua script to retrieve data from Command Modern Operations (CMO), format it into an HTML template, and display it using special messages. The goal is to generate a custom display showing relevant game data.
 ## Step 1: Retrieve Aircraft Data
@@ -140,3 +143,5 @@ By following this process, you can create a custom HTML display that shows dynam
     Retrieve the necessary data with Lua.
     Build the HTML interface and test it.
     Use string.format() to insert the data dynamically.
+
+If you have ideas for creating visualizations or player aids through this system feel free to write me!
