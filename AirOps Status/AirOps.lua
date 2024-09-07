@@ -554,7 +554,7 @@ AIROPS_HTML_TEMPLATE=[[
               <p><strong>Class:</strong> ${unitInfo.type_class}</p>
               <p><strong>Mission:</strong> ${unitInfo.mission}</p>
               <p><strong>Airborne Time:</strong> ${unitInfo.airborne_t}</p>
-              <p><strong>Fuel:</strong> ${unitInfo.current_fuel} / ${unitInfo.max_fuel}</p>
+              <p><strong>Fuel:</strong> ${unitInfo.current_fuel.toFixed(2)} kg / ${unitInfo.max_fuel} kg</p>
               <p><strong>Base:</strong> ${unitInfo.base}</p>
           `;
   
