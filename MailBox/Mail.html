@@ -1,234 +1,139 @@
 <!DOCTYPE html>
-<html lang="en">
-
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mailbox</title>
-  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.1/css/jquery.dataTables.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Poppins', sans-serif;
-      background-color: #1a1a1a;
-      color: #f2f2f2;
-      margin: 0;
-      padding: 20px;
-      display: block;
-      font-size: 14px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado del Aire de las Unidades</title>
+    <!-- Cargar jQuery y DataTables -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css"/>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
 
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .subject {
-      color: #00bfff;
-      /* Azul claro */
-    }
-
-    #received {
-      padding-bottom: 10px;
-      align-items: center;
-      max-width: 80vw;
-      border-collapse: collapse;
-      margin: auto;
-      height: 48vh;
-      overflow: auto;
-    }
-
-    th,
-    td {
-      padding: 5px 5px;
-      text-align: left;
-    }
-
-    th {
-
-      background-color: #333;
-      color: #f2f2f2;
-      padding: 5px;
-    }
-
-    td.date {
-      width: 150px;
-      /* Ajuste estrecho para la columna Date */
-    }
-
-    /* Efecto hover en filas */
-    tr:hover {
-      background-color: #242424 !important;
-      /* Cambio de color al pasar el mouse */
-      transition: background-color 0.3s !important;
-      cursor: pointer;
-    }
-
-    #separator {
-      width: 100%;
-      height: 10px;
-      background-color: #333;
-    }
-
-    .priority-1::before {
-      content: "▲";
-      color: red;
-      margin-right: 8px;
-
-    }
-
-    .priority-2::before {
-      content: "▲";
-      color: yellow;
-      margin-right: 8px;
-    }
-
-
-    .mail-header {
-      padding: 10px;
-      background-color: #333;
-      border-radius: 5px 5px 0 0;
-    }
-
-    .mail-header p {
-      margin: 5px 0;
-    }
-
-    .mail-body {
-      padding: 20px;
-      background-color: #2a2a2a;
-      border-radius: 0 0 5px 5px;
-      border-top: 1px solid #444;
-      overflow-y: auto;
-    }
-
-    /* Ocultar detalles hasta que se seleccione un correo */
-    .mail-details {
-      display: none;
-      margin: auto;
-      margin-top: 20px;
-      width: 80%;
-
-
-    }
-
-    .dataTables_wrapper .dataTables_length,
-    .dataTables_wrapper .dataTables_filter,
-    .dataTables_wrapper .dataTables_info,
-    .dataTables_wrapper .dataTables_paginate {
-      color: #f2f2f2;
-    }
-
-    .dataTables_wrapper .dataTables_paginate .paginate_button {
-      color: #f2f2f2 !important;
-      margin-top: auto;
-    }
-
-    .dataTables_wrapper .dataTables_filter input {
-      background-color: #333;
-      color: #f2f2f2;
-
-    }
-  </style>
-</head>
-
-<body>
-  <div id="received">
-    <table id="mailbox" class="display">
-      <thead>
-        <tr>
-          <th class="date">Date</th>
-          <th>From</th>
-          <th>Subject</th>
-        </tr>
-      </thead>
-      <tbody>
-
-      </tbody>
-    </table>
-  </div>
-  <div id="separator"></div>
-  <!-- Detalles del correo seleccionado -->
-  <div id="mail-details" class="mail-details">
-    <div class="mail-header">
-      <p><strong>From:</strong> <span id="mail-from"></span></p>
-      <p><strong>To:</strong> <span id="mail-to"></span></p>
-      <p><strong>Subject:</strong> <span id="mail-subject"></span></p>
-      <p><strong>Date:</strong> <span id="mail-date"></span></p>
-    </div>
-    <div class="mail-body">
-      <p id="mail-message"></p>
-    </div>
-  </div>
-
-  <!-- Incluir JQuery y DataTables JS -->
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <script src="https://cdn.datatables.net/1.13.1/js/jquery.dataTables.min.js"></script>
-
-  <script>
-    // JSON string with emails - Se recibe mediante string.format()
-    const emails = [{ "from": "john.doe@example.com", "message": "Here is the latest update on the project.", "to": "jane.smith@example.com", "date": "01/09/2024 10:30:00", "priority": 1, "subject": "Project Update: New Header added to the Mission Page" }, { "from": "team.lead@example.com", "message": "Don't forget about the meeting tomorrow at 10 AM.", "to": "developer.team@example.com", "date": "02/09/2024 15:45:00", "priority": 2, "subject": "Meeting Reminder" }, { "from": "hr.department@example.com", "message": "Please review the attached document regarding policy updates.", "to": "all.staff@example.com", "date": "03/09/2024 09:00:00", "priority": 1, "subject": "Policy Changes" }, { "from": "support@example.com", "message": "Your reported issue has been resolved. Thank you for your patience.", "to": "user@example.com", "date": "04/09/2024 14:20:00", "priority": 3, "subject": "Issue Resolved" }, { "from": "sales@company.com", "message": "We are excited to introduce our new product line.", "to": "client@example.com", "date": "05/09/2024 11:00:00", "priority": 2, "subject": "New Product Launch" }, { "from": "marketing@company.com", "message": "Get a 20% discount on your next purchase.", "to": "subscriber@example.com", "date": "06/09/2024 13:30:00", "priority": 1, "subject": "Exclusive Offer Just for You!" }, { "from": "admin@forum.com", "message": "Click the link to reset your password.", "to": "member@example.com", "date": "07/09/2024 08:45:00", "priority": 3, "subject": "Password Reset Request" }, { "from": "hr@company.com", "message": "Please schedule a meeting for your annual performance review.", "to": "employee@example.com", "date": "08/09/2024 16:15:00", "priority": 2, "subject": "Performance Review" }, { "from": "news@newsletter.com", "message": "Here is your weekly news digest.", "to": "subscriber@example.com", "date": "09/09/2024 07:50:00", "priority": 3, "subject": "Weekly Update" }, { "from": "john.doe@example.com", "message": "Can we have a quick meeting to go over the latest changes?", "to": "jane.smith@example.com", "date": "10/09/2024 12:10:00", "priority": 1, "subject": "Follow-up on the Project" }, { "from": "support@company.com", "message": "Please verify your account using the link below.", "to": "user@example.com", "date": "11/09/2024 18:05:00", "priority": 2, "subject": "Account Verification" }, { "from": "event@company.com", "message": "Don't forget about the upcoming event this weekend.", "to": "attendee@example.com", "date": "12/09/2024 09:20:00", "priority": 1, "subject": "Event Reminder" }, { "from": "no-reply@bank.com", "message": "Your monthly account statement is now available.", "to": "customer@example.com", "date": "13/09/2024 10:55:00", "priority": 3, "subject": "Account Statement" }, { "from": "john.doe@example.com", "message": "Attached is the final report for your review.", "to": "jane.smith@example.com", "date": "14/09/2024 17:30:00", "priority": 2, "subject": "Final Report" }, { "from": "john.doe@example.com", "message": "Here is the latest update on the project.", "subject": "Project Update: New Header added to the Mission Page", "isOpen": false, "date": "01/09/2024 10:30:00", "priority": 1, "to": "jane.smith@example.com" }, { "from": "team.lead@example.com", "message": "Don't forget about the meeting tomorrow at 10 AM.", "subject": "Meeting Reminder", "isOpen": false, "date": "02/09/2024 15:45:00", "priority": 2, "to": "developer.team@example.com" }, { "from": "hr.department@example.com", "message": "Please review the attached document regarding policy updates.", "subject": "Policy Changes", "isOpen": false, "date": "03/09/2024 09:00:00", "priority": 1, "to": "all.staff@example.com" }, { "from": "support@example.com", "message": "Your reported issue has been resolved. Thank you for your patience.", "subject": "Issue Resolved", "isOpen": false, "date": "04/09/2024 14:20:00", "priority": 3, "to": "user@example.com" }];
-
-    // Referencias a los elementos del DOM
-    const mailboxTable = document.getElementById('mailbox').querySelector('tbody');
-    const mailDetails = document.getElementById('mail-details');
-    const mailSubject = document.getElementById('mail-subject');
-    const mailFrom = document.getElementById('mail-from');
-    const mailTo = document.getElementById('mail-to');
-    const mailDate = document.getElementById('mail-date');
-    const mailMessage = document.getElementById('mail-message');
-
-    // Función para mostrar la lista de correos en la tabla
-    function loadMails() {
-      emails.forEach((email, index) => {
-        let subjectContent = email.subject;
-        if (email.priority === 1) {
-          subjectContent = `<span class="priority-1"></span>` + subjectContent;
-        } else if (email.priority === 2) {
-          subjectContent = `<span class="priority-2"></span>` + subjectContent;
+    <!-- Estilos personalizados -->
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a1a1a;
+            color: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
         }
 
-        const row = document.createElement('tr');
-        row.setAttribute('data-index', index); // Asignar índice para identificar fila
-        row.innerHTML = `
-              <td class="date">${email.date}</td>
-              <td class="from">${email.from}</td>
-              <td class="subject">${subjectContent}</td>
-          `;
-        mailboxTable.appendChild(row);
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
 
-        // Añadir evento de clic a cada fila
-        row.addEventListener('click', function () {
-          showMailDetails(index);
+        table {
+            width: 100%;
+            max-width: 80vw;
+            margin: auto;
+        }
+
+        th, td {
+            padding: 10px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #333;
+            color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #242424 !important;
+            transition: background-color 0.3s !important;
+            cursor: pointer;
+        }
+
+        .fuel-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 5px;
+        }
+
+        .fuel-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            border-radius: 5px;
+        }
+
+        /* Estilo para DataTables */
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_filter,
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_paginate {
+            color: #f2f2f2;
+        }
+
+        .dataTables_wrapper .dataTables_filter input {
+            background-color: #333;
+            color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Estado del Aire de las Unidades</h1>
+    <table id="statusTable" class="display">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Airborne Time</th>
+                <th>Fuel</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Las filas se añadirán dinámicamente aquí -->
+        </tbody>
+    </table>
+
+    <script>
+    // Los datos JSON (aquí debes colocar tus datos)
+    var data = [{"current_fuel": 19004.71484375, "gtype": "Aircraft", "loadout": "Airborne Early Warning (AEW)", "lat": "17.638", "name": "960 AACS Vikings Det #5", "mission": "AEW - N Philippines", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "20", "dp": 20.0, "fires": "NoFire"}, "id": "6189RR-0HN0F4M6J7USO", "gstype": "4002", "max_fuel": 20910, "group": "", "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "E-7A Wedgetail", "condition": "Airborne", "lon": "123.213"}, {"current_fuel": 17537.59375, "gtype": "Aircraft", "loadout": "Airborne Early Warning (AEW)", "lat": "22.205", "name": "962 AACS Eagle Eyes Det #4", "mission": "AEW/OECM - CSG South", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "20", "dp": 20.0, "fires": "NoFire"}, "id": "6189RR-0HN0F4M6J81EL", "gstype": "4002", "max_fuel": 20910, "group": "", "base": "Andersen AFB [Guam] (Single-Unit Airfield)", "type_class": "E-7A Wedgetail", "condition": "Airborne", "lon": "133.741"}, {"current_fuel": 6962.0625, "gtype": "Aircraft", "loadout": "Recon [Internal EO/IR/ISAR]", "lat": "24.627", "name": "JASDF RQ-4B Det #2", "mission": "Naval Search - CVNs (x1)", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "5", "dp": 5.0, "fires": "NoFire"}, "id": "6189RR-0HN0F4M6J84ML", "gstype": "8201", "max_fuel": 7850, "group": "", "base": "Central Field [Iwo Jima] (Single-Unit Airfield)", "type_class": "RQ-4B Global Hawk UAV", "condition": "Airborne", "lon": "129.636"}, {"current_fuel": "0", "gtype": "Aircraft", "loadout": "Area Surveillance", "lat": "18.481", "name": "High-Altitude Pseudo-Satellite (HAPS) Ballon #1", "mission": "", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "20", "dp": 20.0, "fires": "NoFire"}, "id": "6189RR-0HN0F4M6J7QLQ", "gstype": "8903", "max_fuel": "0", "group": "", "base": "Fort Magsaysay Airfield [Philippines] (Single-Unit Airfield)", "type_class": "HELIOS Jammer", "condition": "Airborne", "lon": "121.109"}, {"current_fuel": 7111.0625, "gtype": "Aircraft", "loadout": "Recon [Internal EO/IR/ISAR]", "lat": "22.948", "name": "VUP-19 Big Red Det #4", "mission": "Naval Search - CVNs (x1)", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "5", "dp": 5.0, "fires": "NoFire"}, "id": "6189RR-0HN0F4M6J86U9", "gstype": "8201", "max_fuel": 7850, "group": "", "base": "Chiashan AFB / Hualien Airport", "type_class": "MQ-4C Triton UAV [Global Hawk Mod]", "condition": "Airborne", "lon": "127.630"}, {"current_fuel": 6662.0625, "gtype": "Aircraft", "loadout": "Recon [Internal EO/IR/ISAR]", "lat": "21.507", "name": "319 OG Det #2", "mission": "Naval Search - CVNs (x1)", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "5", "dp": 5.0, "fires": "NoFire"}, "id": "6189RR-0HN0F4M6J86O2", "gstype": "8201", "max_fuel": 7850, "group": "", "base": "Camilo Osias USMC EAB [Philippines]", "type_class": "RQ-4B Global Hawk UAV", "condition": "Airborne", "lon": "130.541"}, {"current_fuel": 6511.0625, "gtype": "Aircraft", "loadout": "Recon [Internal EO/IR/ISAR]", "lat": "18.260", "name": "10 Sqn RAAF Det #2", "mission": "", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "5", "dp": 5.0, "fires": "NoFire"}, "id": "6189RR-0HN0F4M6J87UQ", "gstype": "8201", "max_fuel": 7850, "group": "", "base": "Fort Magsaysay Airfield [Philippines] (Single-Unit Airfield)", "type_class": "MQ-4C Triton UAV [Global Hawk Mod]", "condition": "Airborne", "lon": "122.800"}, {"current_fuel": 12554.97265625, "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Sniper XR Pod [FLIR], Heavy", "lat": "17.139", "name": "BUNCH #1", "mission": "N Fil - South CAP", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "id": "EW0HES-0HN2LVUVESEMQ", "gstype": "2002", "max_fuel": 14150.0, "group": "Flight Griffin37", "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-15EX Eagle II", "condition": "Airborne", "lon": "120.381"}, {"current_fuel": 12554.670898438, "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Sniper XR Pod [FLIR], Heavy", "lat": "17.142", "name": "BUNCH #2", "mission": "N Fil - South CAP", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "id": "EW0HES-0HN2LVUVESENI", "gstype": "2002", "max_fuel": 14150.0, "group": "Flight Griffin37", "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-15EX Eagle II", "condition": "Airborne", "lon": "120.371"}, {"current_fuel": 12603.818359375, "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Sniper XR Pod [FLIR], Heavy", "lat": "17.068", "name": "BUNCH #3", "mission": "N Fil - South CAP", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "id": "EW0HES-0HN2LVUVESEOA", "gstype": "2002", "max_fuel": 14150.0, "group": "Flight Skull60", "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-15EX Eagle II", "condition": "Airborne", "lon": "121.595"}, {"current_fuel": 12603.331054688, "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Sniper XR Pod [FLIR], Heavy", "lat": "17.074", "name": "BUNCH #4", "mission": "N Fil - South CAP", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "id": "EW0HES-0HN2LVUVESEP2", "gstype": "2002", "max_fuel": 14150.0, "group": "Flight Skull60", "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-15EX Eagle II", "condition": "Airborne", "lon": "121.585"}, {"current_fuel": 8581.390625, "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Standard Internal", "lat": "16.798", "name": "MOZAM #1", "mission": "N Fil - South CAP", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "id": "EW0HES-0HN2M6VVOH3OT", "gstype": "2002", "max_fuel": 9375, "group": "Flight Ranger77", "base": "ADR Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-22A Raptor", "condition": "Airborne", "lon": "121.314"}, {"current_fuel": 8581.4052734375, "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Standard Internal", "lat": "16.801", "name": "MOZAM #2", "mission": "N Fil - South CAP", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "id": "EW0HES-0HN2M6VVOH3PI", "gstype": "2002", "max_fuel": 9375, "group": "Flight Ranger77", "base": "ADR Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-22A Raptor", "condition": "Airborne", "lon": "121.307"}, {"current_fuel": 8565.8251953125, "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Standard Internal", "lat": "16.903", "name": "MOZAM #3", "mission": "N Fil - South CAP", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "id": "EW0HES-0HN2M6VVOH3Q7", "gstype": "2002", "max_fuel": 9375, "group": "Flight Arrow62", "base": "ADR Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-22A Raptor", "condition": "Airborne", "lon": "121.623"}, {"current_fuel": 8565.83984375, "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Standard Internal", "lat": "16.898", "name": "MOZAM #4", "mission": "N Fil - South CAP", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "id": "EW0HES-0HN2M6VVOH3QS", "gstype": "2002", "max_fuel": 9375, "group": "Flight Arrow62", "base": "ADR Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-22A Raptor", "condition": "Airborne", "lon": "121.628"}];
+
+    // Función para agregar filas a la tabla
+    function addRows() {
+        data.forEach(function(item) {
+            var fuelInfo;
+            if (item.max_fuel == 0) {
+                fuelInfo = 'N/A'; // Mostrar N/A si el combustible máximo es 0
+            } else {
+                var fuelPercentage = (item.current_fuel / item.max_fuel * 100).toFixed(2); // Calcula el porcentaje de combustible
+                fuelInfo = '<div class="fuel-bar">' +
+                           '<div class="fuel-fill" style="width:' + fuelPercentage + '%;">' +
+                           fuelPercentage + '%' +
+                           '</div>' +
+                           '</div>';
+            }
+
+            var row = '<tr>' +
+                      '<td>' + item.name + '</td>' +
+                      '<td>' + item.type_class + '</td>' +
+                      '<td>' + item.airborne_t + '</td>' +
+                      '<td>' + fuelInfo + '</td>' +
+                      '</tr>';
+            $('#statusTable tbody').append(row);
         });
-      });
-
-      // Inicializar DataTables para el ajuste automático de columnas
-      $('#mailbox').DataTable({
-        paging: true,
-        searching: true,
-        info: true,
-        autoWidth: true,
-        lengthChange: false,
-        pageLength: 5
-      });
     }
 
-    // Función para mostrar los detalles de un correo
-    function showMailDetails(index) {
-      const email = emails[index];
-      mailSubject.innerText = email.subject;
-      mailFrom.innerText = email.from;
-      mailTo.innerText = email.to;
-      mailDate.innerText = email.date;
-      mailMessage.innerHTML = email.message;
-      mailDetails.style.display = 'block';
-    }
-
-    // Cargar los correos cuando la página se cargue
-    document.addEventListener('DOMContentLoaded', loadMails);
-  </script>
-
+    // Ejecutar la función al cargar la página y activar DataTables
+    $(document).ready(function() {
+        addRows();
+        $('#statusTable').DataTable({
+            paging: true,
+            lengthChange: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            autoWidth: false
+        });
+    });
+    </script>
 </body>
-
 </html>
