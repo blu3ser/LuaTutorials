@@ -1,3 +1,4 @@
+-- Auxiliary Functions
 function table_to_json(tbl)
   local json = ""
   local is_array = (#tbl > 0)
@@ -30,7 +31,6 @@ function table_to_json(tbl)
 
   return json
 end
-
 function value_to_json(value)
   local t = type(value)
   if t == "number" or t == "boolean" then
@@ -43,6 +43,7 @@ function value_to_json(value)
     error("Unsupported value type: " .. t)
   end
 end
+-- HTML TEMPLATE
 AIROPS_HTML_TEMPLATE=[[
 <!DOCTYPE html>
 <html lang="es">
@@ -609,90 +610,144 @@ function openModal(unitInfo) {
 
 ]]
 
+--- Get the current fuel and max fuel of the unit.
+--- If the unit has more than one fuel type, only the first one is used.
 function GetFuel(unit)
-  local current='0'
-  local max = '0'
+  local current_fuel = 0
+  local max_fuel = 0
+
+  -- Check if the unit has fuel data
   if unit.fuel then
-    local t_fuel = unit.fuel
-    if next(t_fuel) then
-      for key, fuel_data in pairs(t_fuel) do
-        current=fuel_data.current
-        max = fuel_data.max
-    end
-    end
+      local t_fuel = unit.fuel
+      
+      -- Ensure there's at least one fuel type to process
+      if next(t_fuel) then
+          -- Iterate over fuel data (even though it stops at the first one)
+          for key, fuel_data in pairs(t_fuel) do
+            current_fuel = fuel_data.current
+              max_fuel = fuel_data.max
+              break -- Exit after processing the first fuel type
+          end
+      end
   end
-  return current, max
+
+  return current_fuel, max_fuel
 end
+
+--- Iterates over all the aircraft from the player's side, obtaining relevant data to be displayed in the window.
 function GetAircraftsData(playerside)
   local data = {}
-  local air_units = VP_GetSide({side=playerside}):unitsBy('Aircraft')
+  
+  -- Get all aircraft units for the specified side
+  local air_units = VP_GetSide({side = playerside}):unitsBy('Aircraft')
 
-  for k,v in ipairs(air_units) do
-    local unit = SE_GetUnit({guid=v.guid})
-    if unit and unit.airbornetime_v > 60 then
-      local current_fuel,max_fuel = GetFuel(unit)
+  -- Loop through each aircraft
+  for k, v in ipairs(air_units) do
+      local unit = SE_GetUnit({guid = v.guid})
       
-      local mission = ''
-      local group = ''
-      local base= ''
-      if unit.base ~= nil then
-        base = unit.base.name
+      -- Only include aircraft that have been airborne for more than 60 seconds
+      if unit and unit.airbornetime_v > 60 then
+          local current_fuel, max_fuel = GetFuel(unit)
+          
+          -- Initialize default values
+          local mission = ''
+          local group = ''
+          local base = ''
+          
+          -- Get the base name if available
+          if unit.base ~= nil then
+              base = unit.base.name
+          end
+          
+          -- Get the group name if available
+          if unit.group ~= nil then
+              group = unit.group.name
+          end
+          
+          -- Get the loadout name using the helper function
+          local loadout = GetLoadoutName(unit)
+          
+          -- Get the mission name if available
+          if unit.mission then
+              mission = unit.mission.name
+          end
+          
+          -- Create a table row with relevant aircraft data
+          local row = {
+              id = unit.guid,
+              name = unit.name, 
+              base = base,
+              airborne_t = unit.airbornetime, -- Time airborne
+              gtype = unit.type, -- General type of the unit
+              gstype = unit.subtype, -- Subtype of the unit
+              current_fuel = current_fuel,
+              max_fuel = max_fuel,
+              loadout = loadout,
+              condition = unit.condition, -- Unit's current condition (e.g., operational status)
+              type_class = unit.classname, -- Class of the unit
+              lat = string.format("%.3f", unit.latitude), -- Latitude formatted to 3 decimal places
+              lon = string.format("%.3f", unit.longitude), -- Longitude formatted to 3 decimal places
+              group = group,
+              damage = unit.damage, -- Unit's damage status
+              mission = mission -- Current mission assigned to the unit
+          }
+          
+          -- Insert the row into the data table
+          table.insert(data, row)
       end
-      if unit.group ~= nil then
-        group = unit.group.name
-      end
-      local loadout = GetLoadoutName(unit)
-      if unit.mission then
-        mission = unit.mission.name
-      end
-      local row = {
-        id=unit.guid,
-        name=unit.name, 
-        base=base,
-        airborne_t = unit.airbornetime,
-        gtype=unit.type,
-        gstype=unit.subtype,
-        current_fuel=current_fuel,
-        max_fuel = max_fuel,
-        loadout=loadout,
-        condition=unit.condition,
-        type_class=unit.classname,
-        lat=string.format("%.3f", unit.latitude),
-        lon=string.format("%.3f", unit.longitude),
-        group=group,
-        damage=unit.damage,
-        mission=mission}
-      table.insert(data,row)
-    end
   end
+
+  -- Convert data table to JSON format for use in the UI
   return table_to_json(data)
 end
+
+--- Retrieves the loadout name of a unit
 function GetLoadoutName(unit)
   local loadout_name = '-'
+  
+  -- Get the loadout data for the unit
   local loadout = ScenEdit_GetLoadout({unitname = unit.guid})
-    if loadout then
-    loadout_name = loadout.name
+  
+  -- Assign loadout name if the data is available
+  if loadout then
+      loadout_name = loadout.name
   end
+  
   return loadout_name
 end
+
+--- Gets all the missions from the player's side with relevant data for window display functionality
 function GetMissions(playerside)
   local missions = ScenEdit_GetMissions(playerside)
   local t_table = {}
+
+  -- Check if there are any missions available
   if missions and #missions > 0 then
-    for k,v in ipairs(missions) do
-      local typeS = string.format('%s',v.type)
-      if #v.unitlist>0 then
-        table.insert(t_table,{name=v.name, id=v.guid,type=typeS, msubtype=v.subtype})
+      -- Loop through each mission
+      for k, v in ipairs(missions) do
+          local typeS = string.format('%s', v.type)
+          
+          -- Only include missions with assigned units
+          if #v.unitlist > 0 then
+              -- Insert relevant mission data into the table
+              table.insert(t_table, {name = v.name, id = v.guid, type = typeS, msubtype = v.subtype})
+          end
       end
-    end
   end
+  
+  -- Convert the missions table to JSON for UI display
   return table_to_json(t_table)
 end
-local playerside = ScenEdit_PlayerSide()
-local data = GetAircraftsData(playerside)
-local dmissions = GetMissions(playerside)
 
-local html_msg = string.format(AIROPS_HTML_TEMPLATE,data,dmissions)
-ScenEdit_SpecialMessage(playerside,html_msg)
+-- Main execution flow
+local playerside = ScenEdit_PlayerSide() -- Get the player's side
+local data = GetAircraftsData(playerside) -- Get aircraft data for the player's side
+local dmissions = GetMissions(playerside) -- Get mission data for the player's side
+
+-- Format the HTML message using the template and data
+local html_msg = string.format(AIROPS_HTML_TEMPLATE, data, dmissions)
+
+-- Send the special message with the formatted HTML to the player
+ScenEdit_SpecialMessage(playerside, html_msg)
 
 
