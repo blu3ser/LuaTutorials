@@ -1,0 +1,698 @@
+function table_to_json(tbl)
+  local json = ""
+  local is_array = (#tbl > 0)
+
+  if is_array then
+    json = "["
+  else
+    json = "{"
+  end
+
+  local first = true
+  for k, v in pairs(tbl) do
+    if not first then
+      json = json .. ", "
+    end
+    first = false
+
+    if is_array then
+      json = json .. value_to_json(v)
+    else
+      json = json .. "\"" .. tostring(k) .. "\": " .. value_to_json(v)
+    end
+  end
+
+  if is_array then
+    json = json .. "]"
+  else
+    json = json .. "}"
+  end
+
+  return json
+end
+
+function value_to_json(value)
+  local t = type(value)
+  if t == "number" or t == "boolean" then
+    return tostring(value)
+  elseif t == "string" then
+    return "\"" .. value:gsub("\"", "\\\"") .. "\""
+  elseif t == "table" then
+    return table_to_json(value)
+  else
+    error("Unsupported value type: " .. t)
+  end
+end
+AIROPS_HTML_TEMPLATE=[[
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Air Ops</title>
+    <!-- Cargar jQuery y DataTables -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css"/>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+    <!-- Estilos personalizados -->
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a1a1a;
+            color: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%%;
+            max-width: 80vw;
+            margin: auto;
+        }
+        table th, table td {
+            border-color: #888 !important; /* Elimina las líneas de separación */
+        }
+        th, td {
+            padding: 10px 15px;
+            text-align: left;
+        }
+        th.fuelCol {
+          width: 80px !important;
+        }
+        th {
+            background-color: #333 !important;
+            color: #f2f2f2;
+        }
+                /* Colores alternos para las filas */
+        
+
+        tr:hover {
+            background-color: #3a3939 !important;
+            transition: background-color 0.3s !important;
+            cursor: pointer;
+        }
+
+        /* Contenedor de la barra de combustible */
+        .fuel-bar {
+          position: relative;
+          width: 100%%;
+          height: 20px;
+          background-color: #474646;
+          border-radius: 5px;
+          overflow: hidden; /* Asegura que no sobresalga nada */
+        }
+
+        /* Barra verde que representa el porcentaje de combustible */
+        .fuel-fill {
+          height: 100%%;
+          background-color: #337535;
+          border-radius: 5px 0 0 5px; /* Solo bordes redondeados a la izquierda */
+        }
+
+        /* Texto del porcentaje de combustible */
+        .fuel-percentage {
+          position: absolute;
+          top: 0;
+          left: 50%%;
+          transform: translateX(-50%%);
+          line-height: 20px; /* Centrado verticalmente */
+          font-weight: bold;
+          color: white;
+          z-index: 1; /* Asegura que el texto esté siempre visible por encima de la barra */
+          pointer-events: none; /* Evita que el texto interrumpa la interacción */
+        }
+        .filter-buttons {
+          display: flex;
+          flex-direction: line;
+          padding: 10px;
+          align-items: center;
+          justify-content: center;
+        }
+        .filter-element{
+          padding: 10px;
+        }
+        /* Estilos generales de DataTables */
+        .dataTables_wrapper {
+          color: #ffffff;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button,
+        .dataTables_wrapper .dataTables_filter label .paging_simple_numbers .dataTables_info {
+          color: #ffffff !important;
+        }
+        #statusTable_filter{
+          color: #ffffff !important;
+          padding-right: 20px;
+        }
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input .dataTables_filter label {
+          color: #ffffff !important;
+          background-color: #333333;
+        }
+
+        /* Alinear el campo de búsqueda de la tabla */
+        .dataTables_filter {
+            text-align: left; /* Alinear el campo de búsqueda a la izquierda */
+            margin-bottom: 10px; /* Espacio entre el campo de búsqueda y la tabla */
+            width: 100%%; /* Ancho completo del contenedor */
+        }
+
+        .dataTables_filter label {
+            font-size: 14px; /* Ajustar el tamaño de la fuente */
+            display: flex; /* Usar flexbox para alinear */
+            justify-content: flex-end; /* Alinear el input a la derecha */
+            align-items: center; /* Alinear verticalmente */
+            width: 100%%; /* Ancho completo para ajustar el input */
+        }
+
+        .dataTables_filter input {
+            
+            margin-right: 90px; /* Espacio entre el texto y el input */
+            background-color: #333; /* Fondo oscuro */
+            color: #fff; /* Texto claro */
+            border: 1px solid #555; /* Borde alrededor del input */
+            padding: 5px; /* Espaciado dentro del input */
+            border-radius: 5px; /* Bordes redondeados */
+        }
+
+
+
+        /* Estilos de la tabla */
+        table.dataTable {
+          color: #ffffff;
+          
+        }
+
+        table.dataTable thead th {
+          background-color: #444444 !important;
+        }
+
+        /* Estilos del cuerpo de la tabla */
+        table.dataTable tbody tr,
+        table.dataTable tbody tr {
+          background-color: #333333 !important;
+          color: #f2f2f2 !important;
+        }
+        table.dataTable  tbody tr:nth-child(odd) {
+          background-color: #2a2a2a !important; /* Color de fondo para las filas impares */
+        }
+
+        table.dataTable  tbody tr:nth-child(even) {
+          background-color: #1a1a1a !important; /* Color de fondo para las filas pares */
+        }
+        
+        table.dataTable  tbody td:nth-child(odd) {
+          background-color: #2a2a2a !important; /* Color de fondo para las filas impares */
+        }
+
+        table.dataTable  tbody td:nth-child(even) {
+          background-color: #1a1a1a !important; /* Color de fondo para las filas pares */
+        }
+  
+
+        table.dataTable tbody tr.selected {
+          background-color: #550011 !important;
+        }
+
+        
+
+        table.dataTable  tr:hover {
+          background-color: #555 !important;
+        }
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_paginate {
+          display: none;
+        }
+        .hidden{
+          display: none;
+        }
+
+
+        /* Columna izquierda para la información de la unidad */
+        .unit-info {
+          flex: 1;
+          padding-right: 20px;
+        }
+
+        /* Columna derecha para el mapa */
+        .map-container {
+          flex: 2;
+          height: 300px;
+          border: 1px solid #888;
+          margin: auto;
+          margin-left: 25px;
+          max-width: 60vw;
+        }
+
+        /* Estilos del modal */
+        .modal {
+          display: none; /* Oculto por defecto */
+          position: fixed;
+          z-index: 100; /* Colocado encima de otros elementos */
+          left: 0;
+          top: 0;
+          width: 100%%;
+          height: 100%%;
+          background-color: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
+        }
+
+        .modal-content {
+          background-color: #1a1a1a;
+          margin: 15%% auto;
+          padding: 20px;
+          border: 1px solid #888;
+          width: 50%%;
+          color: #f2f2f2;
+          border-radius: 10px;
+          display: flex;
+          flex-direction: row;
+        }
+
+        .close {
+          color: #aaa;
+          float: right;
+          font-size: 28px;
+          font-weight: bold;
+          padding: 5px;
+        }
+
+        .close:hover,
+        .close:focus {
+          color: #fff;
+          text-decoration: none;
+          cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+  <div class="filter-buttons">
+    <div class="filter-element">
+      <label for="gstypeFilter">Unit Type:</label>
+      <select id="gstypeFilter">
+          <option value="">All</option>
+      </select>
+    </div>
+    <div class="filter-element">
+      <label for="msubtypeFilter">Mission Type:</label>
+      <select id="msubtypeFilter">
+          <option value="">All</option>
+      </select>
+    </div>
+    <div class="filter-element" id="missionNameFilterDiv" style="display: none;">
+      <label for="missionNameFilter">Mission Name:</label>
+      <select id="missionNameFilter">
+          <option value="">All</option>
+      </select>
+  </div>
+  </div>
+  <div class="tablePlaceholder">
+    <table id="statusTable" class="display">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Mission</th>
+                <th>Loadout</th>
+                <th>Airborne Time</th>
+                <th class="fuelCol">Fuel</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Las filas se añadirán dinámicamente aquí -->
+        </tbody>
+    </table>
+  </div>
+  <div id="unitModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div id="unitInfo">
+            <!-- Aquí se mostrará la información de la unidad -->
+        </div>
+        <div class="map-container" id="map"></div>
+    </div>
+</div>
+    <script>
+    // Los datos JSON (aquí debes colocar tus datos)
+    var data = %s;
+    var missions = %s;
+    const airTypes ={
+      "1001" : "None",
+      "2001" : "Fighter",
+      "2002" : "Multirole",
+      "2101" : "ASAT",
+      "2102" : "Airborne Laser Platform",
+      "3001" : "Attack",
+      "3002" : "Wild Weasel",
+      "3101" : "Bomber",
+      "3401" : "BAI/CAS",
+      "4001" : "EW",
+      "4002" : "AEW",
+      "4003" : "ACP",
+      "4101" : "SAR",
+      "4201" : "MCM",
+      "6001" : "ASW",
+      "6002" : "MPA",
+      "7001" : "Forward Observer",
+      "7002" : "Area Surveillance",
+      "7003" : "Recon",
+      "7004" : "ELINT",
+      "7005" : "SIGINT",
+      "7101" : "Transport",
+      "7201" : "Cargo",
+      "7301" : "Commercial",
+      "7302" : "Civilian",
+      "7401" : "Utility",
+      "7402" : "Naval Utility",
+      "8001" : "Tanker",
+      "8101" : "Trainer",
+      "8102" : "Target Towing",
+      "8103" : "Target Drone",
+      "8201" : "UAV",
+      "8202" : "UCAV",
+      "8901" : "Airship",
+      "8902" : "Aerostat",
+      "8903" : "Balloon"
+    }; 
+    // Obtener gstypes únicos
+function getUniqueGstypes(data) {
+  const gstypes = data.map(item => item.gstype);
+  return [...new Set(gstypes)];
+}
+
+      // Función para llenar el filtro dinámico de gstype, ordenado alfabéticamente por el nombre del airType
+      function populateGstypeFilter() {
+        let uniqueGstypes = getUniqueGstypes(data);
+        
+        // Crear un array de objetos con gstype y su correspondiente nombre en airTypes
+        let gstypeOptions = uniqueGstypes
+            .filter(gstype => airTypes[gstype])  // Filtrar solo los gstypes que tengan una correspondencia en airTypes
+            .map(gstype => {
+                return {
+                    gstype: gstype,
+                    name: airTypes[gstype] // Mapea al nombre correspondiente en airTypes
+                };
+            });
+
+        // Ordenar alfabéticamente por el nombre (no por gstype)
+        gstypeOptions = gstypeOptions.sort((a, b) => a.name.localeCompare(b.name));
+
+        const select = $('#gstypeFilter');
+        
+        // Llenar el select con los valores ordenados alfabéticamente
+        gstypeOptions.forEach(option => {
+            select.append('<option value="' + option.gstype + '">' + option.name + '</option>');
+        });
+      }
+    // Función para obtener los valores únicos de msubtype
+    function getUniqueMsubtypes(missions) {
+        const msubtypes = missions.map(mission => mission.msubtype);
+        return [...new Set(msubtypes)].sort();
+    }
+
+    // Función para obtener el tipo de misión basado en el nombre de la misión
+    function getMsubtypeByMissionName(missionName) {
+        const mission = missions.find(m => m.name === missionName);
+        return mission ? mission.msubtype : 'Desconocido';
+    }
+    // Función para llenar el filtro dinámico de msubtype
+    function populateMsubtypeFilter() {
+        const uniqueMsubtypes = getUniqueMsubtypes(missions);
+        const select = $('#msubtypeFilter');
+        uniqueMsubtypes.forEach(msubtype => {
+            select.append('<option value="' + msubtype + '">' + msubtype + '</option>');
+        });
+    }
+  // Función para agregar filas a la tabla
+   
+
+      // Función para agregar filas a la tabla
+    function addRows(filteredData = data) {
+      $('#statusTable tbody').empty();
+      
+      filteredData.forEach(function(item) {
+            var fuelInfo;
+            if (item.max_fuel == 0) {
+                fuelInfo = 'N/A'; // Mostrar N/A si el combustible máximo es 0
+            } else {
+                var fuelPercentage = (item.current_fuel / item.max_fuel * 100).toFixed(2); // Calcula el porcentaje de combustible
+                fuelInfo = '<div class="fuel-bar">' +
+                           '<div class="fuel-fill" style="width:' + fuelPercentage + '%%;">' +
+                           '</div>' +
+                           '<span class="fuel-percentage">' + fuelPercentage + '%%</span>' +
+                           '</div>';
+            }
+            var row = `
+              <tr data-id="${item.id}">
+                  <td>${item.name}</td>
+                  <td>${item.type_class}</td>
+                  <td>${item.mission}</td>
+                  <td>${item.loadout}</td>
+                  <td>${item.airborne_t}</td>
+                  <td>${fuelInfo}</td>
+              </tr>`;
+            $('#statusTable tbody').append(row);
+        });
+    }
+
+    function filterData() {
+      const selectedGstype = $('#gstypeFilter').val();  // Obtener el valor del filtro de gstype
+      const selectedMsubtype = $('#msubtypeFilter').val();  // Obtener el valor del filtro de msubtype
+      const selectedMissionName = $('#missionNameFilter').val();  // Obtener el valor del filtro de nombre de misión
+      
+      let filteredMissions = missions;
+  
+      // Si se ha seleccionado un msubtype, obtener las misiones que coincidan
+      if (selectedMsubtype) {
+          filteredMissions = missions.filter(mission => mission.msubtype === selectedMsubtype);
+      }
+  
+      // Obtener los nombres de misión que coinciden con el msubtype filtrado
+      const missionNames = filteredMissions.map(mission => mission.name);
+  
+      // Si se ha seleccionado un nombre de misión, aplicar ese filtro
+      if (selectedMissionName) {
+          filteredMissions = filteredMissions.filter(mission => mission.name === selectedMissionName);
+      }
+  
+      // Filtrar los datos de aeronaves
+      const filteredData = data.filter(item => {
+          const gstypeMatch = !selectedGstype || item.gstype.toString() === selectedGstype;
+          const msubtypeMatch = !selectedMsubtype || missionNames.includes(item.mission);
+          const missionNameMatch = !selectedMissionName || item.mission === selectedMissionName;
+  
+          return gstypeMatch && msubtypeMatch && missionNameMatch;
+      });
+  
+      // Actualizar la tabla con los datos filtrados
+      addRows(filteredData);
+  }
+  
+  // Función para mostrar/ocultar el filtro de nombre de misión y llenarlo
+  function handleMsubtypeFilterChange() {
+      const selectedMsubtype = $('#msubtypeFilter').val();
+      
+      if (selectedMsubtype) {
+        // Mostrar el div del filtro de nombre de misión
+        $('#missionNameFilterDiv').show();
+
+        // Llenar el filtro de nombres de misión basados en el msubtype seleccionado
+        const filteredMissions = missions.filter(mission => mission.msubtype === selectedMsubtype);
+        const missionNames = [...new Set(filteredMissions.map(mission => mission.name))].sort(); // Nombres únicos
+
+        // Limpiar y rellenar el select con los nombres de misión
+        $('#missionNameFilter').empty().append('<option value="">All</option>');
+        missionNames.forEach(name => {
+            $('#missionNameFilter').append('<option value="' + name + '">' + name + '</option>');
+        });
+    } else {
+        // Ocultar el div del filtro de nombre de misión si no hay msubtype seleccionado
+        $('#missionNameFilterDiv').hide();
+    }
+  
+      // Actualizar los datos filtrados de acuerdo al msubtype seleccionado
+      filterData();  // Filtrar la tabla directamente después de cambiar el filtro de msubtype
+  }
+      // Función para abrir el modal con información y mapa
+function openModal(unitInfo) {
+    // Mostrar el modal
+    const modal = document.getElementById("unitModal");
+    modal.style.display = "block";
+
+    // Insertar información de la unidad en el modal (columna izquierda)
+    const unitInfoDiv = document.getElementById("unitInfo");
+    unitInfoDiv.innerHTML = `
+            <h2>Unit Info</h2>
+            <p><strong>Name:</strong> ${unitInfo.name}</p>
+            <p><strong>Type:</strong> ${airTypes[unitInfo.gstype]}</p>
+            <p><strong>Class:</strong> ${unitInfo.type_class}</p>
+            <p><strong>Mission:</strong> ${unitInfo.mission}</p>
+            
+            <p><strong>Airborne Time:</strong> ${unitInfo.airborne_t}</p>
+            <p><strong>Fuel:</strong> ${unitInfo.current_fuel.toFixed(2)} kg / ${unitInfo.max_fuel} kg</p>
+            <p><strong>Base:</strong> ${unitInfo.base}</p>
+            <p><strong>Condition:</strong> ${unitInfo.condition}</p>
+        <!-- Columna derecha con el mapa -->
+        
+    `;
+
+        // Configurar el mapa solo si hay latitud y longitud
+        if (unitInfo.lat && unitInfo.lon) {
+            const map = L.map('map').setView([unitInfo.lat, unitInfo.lon], 5);
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 14
+            }).addTo(map);
+
+            L.marker([unitInfo.lat, unitInfo.lon]).addTo(map)
+                .bindPopup(`${unitInfo.name}`);
+        }
+    }
+  // Función para cerrar el modal
+  function closeModal() {
+    const modal = document.getElementById("unitModal");
+    modal.style.display = "none";
+  }
+  $(document).ready(function() {
+    $('#statusTable tbody').on('click', 'tr', function() {
+        // Obtener el ID de la unidad desde el `data-id` de la fila
+        const unitId = $(this).data('id');
+        
+        // Buscar la unidad correspondiente en los datos
+        const unitInfo = data.find(item => item.id === unitId);
+        
+        if (unitInfo) {
+            openModal(unitInfo); // Abrir el modal con la información correcta
+        }
+    });
+
+    // Manejar el cierre del modal al hacer clic en el botón de cerrar (x)
+    $('.close').on('click', closeModal);
+
+    // Cerrar el modal al hacer clic fuera de la ventana de contenido
+    window.onclick = function(event) {
+        const modal = document.getElementById("unitModal");
+        if (event.target === modal) {
+            closeModal();
+        }
+    };
+      // Inicializar los filtros
+      populateGstypeFilter();
+      populateMsubtypeFilter();
+      addRows();  // Mostrar todas las filas al inicio
+  
+      // Manejar los cambios en los filtros
+      $('#gstypeFilter, #missionNameFilter').on('change', filterData);  // Filtros de gstype y mission name
+      $('#msubtypeFilter').on('change', handleMsubtypeFilterChange);  // Filtro de msubtype que además activa el filtro de mission name
+      $('#statusTable').DataTable({
+        searching: true,
+        ordering: true,
+        autoWidth: true,
+        fixedHeader: true,
+        scrollCollapse: false,
+        paging: false
+    });
+  });
+    
+  </script>
+</body>
+</html>
+
+]]
+
+function GetFuel(unit)
+  local current='0'
+  local max = '0'
+  if unit.fuel then
+    local t_fuel = unit.fuel
+    if next(t_fuel) then
+      for key, fuel_data in pairs(t_fuel) do
+        current=fuel_data.current
+        max = fuel_data.max
+    end
+    end
+  end
+  return current, max
+end
+function GetAircraftsData(playerside)
+  local data = {}
+  local air_units = VP_GetSide({side=playerside}):unitsBy('Aircraft')
+
+  for k,v in ipairs(air_units) do
+    local unit = SE_GetUnit({guid=v.guid})
+    if unit and unit.airbornetime_v > 60 then
+      local current_fuel,max_fuel = GetFuel(unit)
+      
+      local mission = ''
+      local group = ''
+      local base= ''
+      if unit.base ~= nil then
+        base = unit.base.name
+      end
+      if unit.group ~= nil then
+        group = unit.group.name
+      end
+      local loadout = GetLoadoutName(unit)
+      if unit.mission then
+        mission = unit.mission.name
+      end
+      local row = {
+        id=unit.guid,
+        name=unit.name, 
+        base=base,
+        airborne_t = unit.airbornetime,
+        gtype=unit.type,
+        gstype=unit.subtype,
+        current_fuel=current_fuel,
+        max_fuel = max_fuel,
+        loadout=loadout,
+        condition=unit.condition,
+        type_class=unit.classname,
+        lat=string.format("%.3f", unit.latitude),
+        lon=string.format("%.3f", unit.longitude),
+        group=group,
+        damage=unit.damage,
+        mission=mission}
+      table.insert(data,row)
+    end
+  end
+  return table_to_json(data)
+end
+function GetLoadoutName(unit)
+  local loadout_name = '-'
+  local loadout = ScenEdit_GetLoadout({unitname = unit.guid})
+    if loadout then
+    loadout_name = loadout.name
+  end
+  return loadout_name
+end
+function GetMissions(playerside)
+  local missions = ScenEdit_GetMissions(playerside)
+  local t_table = {}
+  if missions and #missions > 0 then
+    for k,v in ipairs(missions) do
+      local typeS = string.format('%s',v.type)
+      if #v.unitlist>0 then
+        table.insert(t_table,{name=v.name, id=v.guid,type=typeS, msubtype=v.subtype})
+      end
+    end
+  end
+  return table_to_json(t_table)
+end
+local playerside = ScenEdit_PlayerSide()
+local data = GetAircraftsData(playerside)
+local dmissions = GetMissions(playerside)
+
+local html_msg = string.format(AIROPS_HTML_TEMPLATE,data,dmissions)
+ScenEdit_SpecialMessage(playerside,html_msg)
+
+

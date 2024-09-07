@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estado del Aire de las Unidades</title>
+    <!-- Cargar jQuery y DataTables -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css"/>
+    <script type="text/javascript" src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+
+    <!-- Estilos personalizados -->
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background-color: #1a1a1a;
+            color: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+            font-size: 14px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            max-width: 80vw;
+            margin: auto;
+        }
+
+        th, td {
+            padding: 10px 15px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #333 !important;
+            color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #242424 !important;
+            transition: background-color 0.3s !important;
+            cursor: pointer;
+        }
+
+        .fuel-bar {
+            width: 100%;
+            height: 20px;
+            background-color: #ddd;
+            border-radius: 5px;
+        }
+
+        .fuel-fill {
+            height: 100%;
+            background-color: #4CAF50;
+            text-align: center;
+            line-height: 20px;
+            color: white;
+            border-radius: 5px;
+        }
+
+        /* Estilos generales de DataTables */
+        .dataTables_wrapper {
+          color: #ffffff;
+        }
+
+        .dataTables_wrapper .dataTables_paginate .paginate_button,
+        .dataTables_wrapper .dataTables_filter label .paging_simple_numbers .dataTables_info {
+          color: #ffffff !important;
+        }
+
+        .dataTables_wrapper .dataTables_length select,
+        .dataTables_wrapper .dataTables_filter input .dataTables_filter label {
+          color: #ffffff !important;
+          background-color: #333333;
+        }
+
+        .dataTables_filter {
+          margin-right: 17px;
+          margin-bottom: 5px;
+        }
+
+        table.dataTables_scrollHead {
+          position: sticky;
+          top: 0;
+          z-index: 1;
+        }
+
+        /* Estilos de la tabla */
+        table.dataTable {
+          color: #ffffff;
+          background-color: #333333 !important;
+        }
+
+        table.dataTable thead th {
+          background-color: #444444 !important;
+        }
+
+        /* Estilos del cuerpo de la tabla */
+        table.dataTable tbody tr,
+        table.dataTable tbody td {
+          background-color: #333333 !important;
+          color: #f2f2f2 !important;
+        }
+
+        table.dataTable tbody tr.odd {
+          background-color: #393939 !important;
+        }
+
+        table.dataTable tbody tr:hover td {
+          background-color: #242424 !important;
+        }
+
+        table.dataTable tbody tr.selected {
+          background-color: #550011 !important;
+        }
+
+        table.dataTable tbody tr td:first-child {
+          background-color: #333333 !important;
+        }
+
+        table.dataTable tbody tr td:first-child:hover {
+          background-color: #555 !important;
+        }
+        .dataTables_wrapper .dataTables_info,
+        .dataTables_wrapper .dataTables_length,
+        .dataTables_wrapper .dataTables_paginate {
+          display: none;
+        }
+    </style>
+</head>
+<body>
+  <div class="filter-buttons">
+    <label for="gtypeFilter">Filtrar por tipo de unidad:</label>
+    <select id="gtypeFilter">
+        <option value="">Todos</option>
+    </select>
+  </div>
+  <div class="tablePlaceholder">
+    <table id="statusTable" class="display">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Class</th>
+                <th>Mission</th>
+                <th>Airborne Time</th>
+                <th>Fuel</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Las filas se añadirán dinámicamente aquí -->
+        </tbody>
+    </table>
+  </div>
+    <script>
+    // Los datos JSON (aquí debes colocar tus datos)
+    var data = [{"current_fuel": 19004.71484375, "mission": "AEW - N Philippines", "gtype": "Aircraft", "loadout": "Airborne Early Warning (AEW)", "lat": "17.638", "name": "960 AACS Vikings Det #5", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "20", "dp": 20.0, "fires": "NoFire"}, "group": "", "id": "6189RR-0HN0F4M6J7USO", "gstype": "4002", "max_fuel": 20910, "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "E-7A Wedgetail", "airborne_t": "53 min 27 sec", "condition": "Airborne", "lon": "123.213"}, {"current_fuel": 17537.59375, "mission": "AEW/OECM - CSG South", "gtype": "Aircraft", "loadout": "Airborne Early Warning (AEW)", "lat": "22.205", "name": "962 AACS Eagle Eyes Det #4", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "20", "dp": 20.0, "fires": "NoFire"}, "group": "", "id": "6189RR-0HN0F4M6J81EL", "gstype": "4002", "max_fuel": 20910, "base": "Andersen AFB [Guam] (Single-Unit Airfield)", "type_class": "E-7A Wedgetail", "airborne_t": "1 hr 53 min", "condition": "Airborne", "lon": "133.741"}, {"current_fuel": 6962.0625, "mission": "Naval Search - CVNs (x1)", "gtype": "Aircraft", "loadout": "Recon [Internal EO/IR/ISAR]", "lat": "24.627", "name": "JASDF RQ-4B Det #2", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "5", "dp": 5.0, "fires": "NoFire"}, "group": "", "id": "6189RR-0HN0F4M6J84ML", "gstype": "8201", "max_fuel": 7850, "base": "Central Field [Iwo Jima] (Single-Unit Airfield)", "type_class": "RQ-4B Global Hawk UAV", "airborne_t": "3 hr 13 min", "condition": "Airborne", "lon": "129.636"}, {"current_fuel": "0", "mission": "", "gtype": "Aircraft", "loadout": "Area Surveillance", "lat": "18.481", "name": "High-Altitude Pseudo-Satellite (HAPS) Ballon #1", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "20", "dp": 20.0, "fires": "NoFire"}, "group": "", "id": "6189RR-0HN0F4M6J7QLQ", "gstype": "8903", "max_fuel": "0", "base": "Fort Magsaysay Airfield [Philippines] (Single-Unit Airfield)", "type_class": "HELIOS Jammer", "airborne_t": "23 min 27 sec", "condition": "Airborne", "lon": "121.109"}, {"current_fuel": 7111.0625, "mission": "Naval Search - CVNs (x1)", "gtype": "Aircraft", "loadout": "Recon [Internal EO/IR/ISAR]", "lat": "22.948", "name": "VUP-19 Big Red Det #4", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "5", "dp": 5.0, "fires": "NoFire"}, "group": "", "id": "6189RR-0HN0F4M6J86U9", "gstype": "8201", "max_fuel": 7850, "base": "Chiashan AFB / Hualien Airport", "type_class": "MQ-4C Triton UAV [Global Hawk Mod]", "airborne_t": "3 hr 23 min", "condition": "Airborne", "lon": "127.630"}, {"current_fuel": 6662.0625, "mission": "Naval Search - CVNs (x1)", "gtype": "Aircraft", "loadout": "Recon [Internal EO/IR/ISAR]", "lat": "21.507", "name": "319 OG Det #2", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "5", "dp": 5.0, "fires": "NoFire"}, "group": "", "id": "6189RR-0HN0F4M6J86O2", "gstype": "8201", "max_fuel": 7850, "base": "Camilo Osias USMC EAB [Philippines]", "type_class": "RQ-4B Global Hawk UAV", "airborne_t": "4 hr 34 min", "condition": "Airborne", "lon": "130.541"}, {"current_fuel": 6511.0625, "mission": "", "gtype": "Aircraft", "loadout": "Recon [Internal EO/IR/ISAR]", "lat": "18.260", "name": "10 Sqn RAAF Det #2", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "5", "dp": 5.0, "fires": "NoFire"}, "group": "", "id": "6189RR-0HN0F4M6J87UQ", "gstype": "8201", "max_fuel": 7850, "base": "Fort Magsaysay Airfield [Philippines] (Single-Unit Airfield)", "type_class": "MQ-4C Triton UAV [Global Hawk Mod]", "airborne_t": "6 hr 21 min", "condition": "Airborne", "lon": "122.800"}, {"current_fuel": 12554.97265625, "mission": "N Fil - South CAP", "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Sniper XR Pod [FLIR], Heavy", "lat": "17.139", "name": "BUNCH #1", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "group": "Flight Griffin37", "id": "EW0HES-0HN2LVUVESEMQ", "gstype": "2002", "max_fuel": 14150.0, "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-15EX Eagle II", "airborne_t": "19 min 58 sec", "condition": "Airborne", "lon": "120.381"}, {"current_fuel": 12554.670898438, "mission": "N Fil - South CAP", "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Sniper XR Pod [FLIR], Heavy", "lat": "17.142", "name": "BUNCH #2", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "group": "Flight Griffin37", "id": "EW0HES-0HN2LVUVESENI", "gstype": "2002", "max_fuel": 14150.0, "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-15EX Eagle II", "airborne_t": "19 min 58 sec", "condition": "Airborne", "lon": "120.371"}, {"current_fuel": 12603.818359375, "mission": "N Fil - South CAP", "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Sniper XR Pod [FLIR], Heavy", "lat": "17.068", "name": "BUNCH #3", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "group": "Flight Skull60", "id": "EW0HES-0HN2LVUVESEOA", "gstype": "2002", "max_fuel": 14150.0, "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-15EX Eagle II", "airborne_t": "19 min 58 sec", "condition": "Airborne", "lon": "121.595"}, {"current_fuel": 12603.331054688, "mission": "N Fil - South CAP", "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Sniper XR Pod [FLIR], Heavy", "lat": "17.074", "name": "BUNCH #4", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "group": "Flight Skull60", "id": "EW0HES-0HN2LVUVESEP2", "gstype": "2002", "max_fuel": 14150.0, "base": "Cesar Basa Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-15EX Eagle II", "airborne_t": "19 min 58 sec", "condition": "Airborne", "lon": "121.585"}, {"current_fuel": 8581.390625, "mission": "N Fil - South CAP", "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Standard Internal", "lat": "16.798", "name": "MOZAM #1", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "group": "Flight Ranger77", "id": "EW0HES-0HN2M6VVOH3OT", "gstype": "2002", "max_fuel": 9375, "base": "ADR Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-22A Raptor", "airborne_t": "19 min 58 sec", "condition": "Airborne", "lon": "121.314"}, {"current_fuel": 8581.4052734375, "mission": "N Fil - South CAP", "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Standard Internal", "lat": "16.801", "name": "MOZAM #2", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "group": "Flight Ranger77", "id": "EW0HES-0HN2M6VVOH3PI", "gstype": "2002", "max_fuel": 9375, "base": "ADR Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-22A Raptor", "airborne_t": "19 min 58 sec", "condition": "Airborne", "lon": "121.307"}, {"current_fuel": 8565.8251953125, "mission": "N Fil - South CAP", "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Standard Internal", "lat": "16.903", "name": "MOZAM #3", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "group": "Flight Arrow62", "id": "EW0HES-0HN2M6VVOH3Q7", "gstype": "2002", "max_fuel": 9375, "base": "ADR Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-22A Raptor", "airborne_t": "19 min 58 sec", "condition": "Airborne", "lon": "121.623"}, {"current_fuel": 8565.83984375, "mission": "N Fil - South CAP", "gtype": "Aircraft", "loadout": "A/A: AIM-260 JATM, Standard Internal", "lat": "16.898", "name": "MOZAM #4", "damage": {"dp_percent_now": "0", "dp_percent": "0", "flood": "NoFlooding", "startdp": "10", "dp": 10.0, "fires": "NoFire"}, "group": "Flight Arrow62", "id": "EW0HES-0HN2M6VVOH3QS", "gstype": "2002", "max_fuel": 9375, "base": "ADR Air Base [Philippines] (Single-Unit Airfield)", "type_class": "F-22A Raptor", "airborne_t": "19 min 58 sec", "condition": "Airborne", "lon": "121.628"}];
+      
+    // Función para obtener valores únicos de gtype
+    function getUniqueGtypes(data) {
+      const gtypes = data.map(item => item.gtype);
+      return [...new Set(gtypes)];
+  }
+
+  // Función para llenar el filtro dinámico de gtype
+  function populateGtypeFilter() {
+      const uniqueGtypes = getUniqueGtypes(data);
+      const select = $('#gtypeFilter');
+      uniqueGtypes.forEach(gtype => {
+          select.append('<option value="' + gtype + '">' + gtype + '</option>');
+      });
+  }
+
+  // Función para agregar filas a la tabla
+  function addRows(filteredData = data) {
+      $('#statusTable tbody').empty(); // Vaciar la tabla antes de agregar nuevas filas
+      filteredData.forEach(function(item) {
+          var fuelInfo;
+          if (item.max_fuel == 0) {
+              fuelInfo = 'N/A'; // Mostrar N/A si el combustible máximo es 0
+          } else {
+              var fuelPercentage = (item.current_fuel / item.max_fuel * 100).toFixed(2); // Calcula el porcentaje de combustible
+              fuelInfo = '<div class="fuel-bar">' +
+                         '<div class="fuel-fill" style="width:' + fuelPercentage + '%;">' +
+                         fuelPercentage + '%' +
+                         '</div>' +
+                         '</div>';
+          }
+
+          var row = '<tr>' +
+                    '<td>' + item.name + '</td>' +
+                    '<td>' + item.type_class + '</td>' +
+                    '<td>' + item.gtype + '</td>' +
+                    '<td>' + item.airborne_t + '</td>' +
+                    '<td>' + fuelInfo + '</td>' +
+                    '</tr>';
+          $('#statusTable tbody').append(row);
+      });
+  }
+
+    // Función para filtrar los datos por gtype
+    function filterByGtype(gtype) {
+        if (gtype === "") {
+            addRows(data); // Mostrar todos los datos si no hay filtro
+        } else {
+            const filteredData = data.filter(item => item.gtype === gtype);
+            addRows(filteredData);
+        }
+    }
+    // Función para agregar filas a la tabla
+    function addRows(filteredData = data) {
+        data.forEach(function(item) {
+            var fuelInfo;
+            if (item.max_fuel == 0) {
+                fuelInfo = 'N/A'; // Mostrar N/A si el combustible máximo es 0
+            } else {
+                var fuelPercentage = (item.current_fuel / item.max_fuel * 100).toFixed(2); // Calcula el porcentaje de combustible
+                fuelInfo = '<div class="fuel-bar">' +
+                           '<div class="fuel-fill" style="width:' + fuelPercentage + '%;">' +
+                           fuelPercentage + '%' +
+                           '</div>' +
+                           '</div>';
+            }
+
+            var row = '<tr>' +
+                      '<td>' + item.name + '</td>' +
+                      '<td>' + item.type_class + '</td>' +
+                      '<td>' + item.mission + '</td>' +
+                      '<td>' + item.airborne_t + '</td>' +
+                      '<td>' + fuelInfo + '</td>' +
+                      '</tr>';
+            $('#statusTable tbody').append(row);
+        });
+    }
+
+    // Filtrar la tabla cuando el filtro de gtype cambie
+    $('#gtypeFilter').on('change', function() {
+        var selectedGtype = $(this).val();
+        filterByGtype(selectedGtype);
+    });
+    // Ejecutar la función al cargar la página y activar DataTables
+    $(document).ready(function() {
+        addRows();
+        $('#statusTable').DataTable({
+            searching: true,
+            ordering: true,
+            autoWidth: true,
+            scrollCollapse: false,
+            paging: false
+        });
+    });
+    </script>
+</body>
+</html>
