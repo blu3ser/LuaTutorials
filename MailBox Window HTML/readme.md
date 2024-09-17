@@ -74,7 +74,7 @@ Mail:send(mail2, MailBox, true)
 
 To give players an intuitive, attractive mailbox interface, we use an HTML template. This template will display emails as clickable rows in a table format, and when clicked, it will show the full email details. 
 
-_Diving into the details of the HTML/CSS/JS is beyond the scope of this tutorial, but the recommendation is to test with some default data to get the look and functionality just right._
+_Diving into the details of the HTML/CSS/JS is beyond the scope of this tutorial, but the recommendation is to test with some default data to get the look and functionality just right. You have an implementation of the html in the Mail.html file_
 
 Once you're happy with the result, simply escape each % with another % (i.e., write %% in the code), and replace the data you want to insert with a %s. This will allow you to dynamically inject the content into the template using Lua's string.format function.
 
