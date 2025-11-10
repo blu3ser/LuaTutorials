@@ -137,12 +137,12 @@ CommandCLI.exe -mode mc -scenario scenario.scen -it 60
 1. Open the Lua Console (`Ctrl+Shift+L` or Editor menu)
 2. Type: `ITERATION = 0`
 3. Press Enter
-4. Now you can start your new Monte Carlo run
+4. Now you can start your new Monte Carlo batch
 
 **What happens if you forget:**
 ```
-First run:  ITERATION: 1 → 60   ✅ Correct
-Second run: ITERATION: 61 → 120 ❌ WRONG! Your variation logic breaks!
+First batch:  ITERATION: 1 → 60   ✅ Correct
+Second batch: ITERATION: 61 → 120 ❌ WRONG! Your variation logic breaks!
 With reset: ITERATION: 1 → 60   ✅ Correct
 ```
 
@@ -217,7 +217,7 @@ local SETTINGS = generateMissionSettings(ITERATION)
 
 ## This Example's Configuration
 
-The included example tests 6 different strike package configurations (10 runs each):
+The included example tests 6 different strike package configurations (10 iterations each):
 
 | Iterations | Configuration |
 |------------|---------------|
@@ -384,7 +384,7 @@ end
 
 1. **Event for Variations** - Use an event to add/modify scenario elements based on ITERATION
 
-2. **Global Variable Persistence** - ITERATION remembers its value across runs within a Monte Carlo batch
+2. **Global Variable Persistence** - ITERATION remembers its value across iterations within a Monte Carlo batch
 
 3. **⚠️ UI vs CommandCLI**:
    - **CommandCLI**: Automatically resets ITERATION between batches
@@ -426,7 +426,7 @@ end
 **The Technique:**
 1. Create your base scenario (as much or as little as you want)
 2. Add an event that fires at T+1 second after scenario start
-3. The event tracks ITERATION (global variable) and increments it each run
+3. The event tracks ITERATION (global variable) and increments it each iteration
 4. Use ITERATION to determine what variations to add/modify
 5. The script dynamically adds or modifies scenario elements
 
