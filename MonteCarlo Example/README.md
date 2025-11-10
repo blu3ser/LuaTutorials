@@ -3,6 +3,17 @@
 This tutorial shows you how to create **different scenario variations** when using the Command Professional Edition Monte Carlo tool.
 
 ---
+## TL;DR Quickstart
+
+1. Create a timed event (T+1s) in your scenario.
+2. Add this Lua script:
+
+   ```lua
+   if not ITERATION then ITERATION = 1 else ITERATION = ITERATION + 1 end
+   -- Add your variation logic based on ITERATION here
+   ```
+   
+---
 
 ## Understanding Monte Carlo
 
