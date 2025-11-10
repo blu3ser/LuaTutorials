@@ -13,92 +13,164 @@ The Command PE **Monte Carlo tool** runs the same scenario multiple times to gen
 
 This tutorial shows you how to do exactly that.
 
-## The Solution: The ITERATION Variable
+## The Solution: Event-Based Game Setup
 
-The key is using a **global Lua variable** that tracks which iteration you're on. This variable:
-- Starts at 1 on the first run
-- Automatically increments each run (2, 3, 4...)
-- **Persists throughout the entire Monte Carlo batch**
-- **Resets when you start a new Monte Carlo run**
+The solution has two parts:
 
-Think of it like a counter that keeps track of "which run am I on?" within a single Monte Carlo session.
+### Part 1: Using an Event as "Game Setup"
 
-## How It Works
+Instead of pre-building your scenario with units and missions, you create an **empty scenario** with just an **event** that runs at the start (1 second after scenario begins).
 
-### Step 1: Track the Iteration
+This event contains a Lua script that **dynamically builds the entire scenario** - creating all units, missions, and settings when the scenario starts.
 
-At the start of your scenario, add this simple code:
+**Why do this?**
+- The event script runs every time the scenario starts
+- You can put logic in the script to build different things each time
+- Perfect for Monte Carlo where you want variations across runs
+
+**How it works:**
+1. Create a blank scenario (just sides, timing, etc.)
+2. Add a **timed event** that triggers 1 second after scenario start
+3. This event executes a Lua script that builds your scenario
+4. Every time the Monte Carlo tool runs the scenario, this script runs and builds everything fresh
+
+### Part 2: The ITERATION Variable
+
+Inside the event script, you use a **global variable called `ITERATION`** to track which run you're on:
 
 ```lua
+-- This code is in the event script that runs at scenario start
 if not ITERATION then
     ITERATION = 1              -- First run: start at 1
 else
     ITERATION = ITERATION + 1  -- Next runs: add 1
 end
-
-print('Current iteration: ' .. ITERATION)
 ```
 
-**What this does:**
-- First time the scenario runs: `ITERATION` doesn't exist, so set it to 1
-- Every time after that: `ITERATION` already exists, so add 1 to it
-- The variable **persists** between runs in the same Monte Carlo batch
+**Key properties of this variable:**
+- It's a **global variable** (not local)
+- Starts at 1 on the first run
+- **Automatically increments** each run (2, 3, 4...)
+- **Persists throughout the entire Monte Carlo batch**
+- **Resets to 1 when you start a new Monte Carlo run**
 
-### Step 2: Use the Iteration Number to Create Variations
+Think of it like a counter that keeps track of "which run am I on?" within a single Monte Carlo session.
 
-Now you can use the `ITERATION` number to decide what to create:
+### Part 3: Using ITERATION to Create Variations
+
+Once you're tracking the iteration number, use it to decide what to build:
 
 ```lua
+-- Still inside the event script
+print('Current iteration: ' .. ITERATION)
+
 if ITERATION <= 10 then
     -- Runs 1-10: Create 2 bombers
-    ScenEdit_AddUnit({name='Bomber #1', ...})
-    ScenEdit_AddUnit({name='Bomber #2', ...})
+    ScenEdit_AddUnit({side='BLUE', name='Bomber #1', ...})
+    ScenEdit_AddUnit({side='BLUE', name='Bomber #2', ...})
 
 elseif ITERATION <= 20 then
     -- Runs 11-20: Create 4 bombers
-    ScenEdit_AddUnit({name='Bomber #1', ...})
-    ScenEdit_AddUnit({name='Bomber #2', ...})
-    ScenEdit_AddUnit({name='Bomber #3', ...})
-    ScenEdit_AddUnit({name='Bomber #4', ...})
+    ScenEdit_AddUnit({side='BLUE', name='Bomber #1', ...})
+    ScenEdit_AddUnit({side='BLUE', name='Bomber #2', ...})
+    ScenEdit_AddUnit({side='BLUE', name='Bomber #3', ...})
+    ScenEdit_AddUnit({side='BLUE', name='Bomber #4', ...})
 
 elseif ITERATION <= 30 then
     -- Runs 21-30: Create 2 bombers + EW support
-    ScenEdit_AddUnit({name='Bomber #1', ...})
-    ScenEdit_AddUnit({name='Bomber #2', ...})
-    ScenEdit_AddUnit({name='EW Aircraft #1', ...})
+    ScenEdit_AddUnit({side='BLUE', name='Bomber #1', ...})
+    ScenEdit_AddUnit({side='BLUE', name='Bomber #2', ...})
+    ScenEdit_AddUnit({side='BLUE', name='EW Aircraft #1', ...})
 end
 ```
 
-## Important: When Does ITERATION Reset?
+## How the Complete System Works
 
-**Within a Monte Carlo Run:**
-- ITERATION persists and increments (1, 2, 3... 60)
-- This is what you want!
+Here's the full flow:
 
-**Starting a New Monte Carlo Run:**
-- ITERATION resets to 1
-- Each new Monte Carlo batch starts fresh
+1. **Setup Phase** (done once):
+   - Run [MonteCarlo Scenario Generation.lua](MonteCarlo%20Scenario%20Generation.lua) to create scenario
+   - This creates a blank scenario with an event containing your variation script
+   - Save the scenario file
 
-**Example:**
-1. You run Monte Carlo with 60 iterations → ITERATION goes from 1 to 60
-2. You close Command PE and come back tomorrow
-3. You start a new Monte Carlo run → ITERATION starts at 1 again
+2. **Monte Carlo Run** (automated):
+   - Monte Carlo tool starts iteration 1
+   - Scenario loads (empty, just sides and timing)
+   - Event fires at T+1 second
+   - Event script runs: `ITERATION = 1` (first run)
+   - Script builds scenario based on ITERATION = 1
+   - Scenario plays out
+   - Monte Carlo tool starts iteration 2
+   - Event fires again at T+1 second
+   - Event script runs: `ITERATION = 2` (increments!)
+   - Script builds different scenario based on ITERATION = 2
+   - This continues for all iterations...
 
-This is the correct behavior - each Monte Carlo analysis is independent.
+3. **Analysis Phase**:
+   - Compare results across different configurations
+   - Determine which approach performed best
+
+## Understanding the Event Setup
+
+### What's in the Event?
+
+The event has three parts:
+
+**Trigger:** Time-based, fires 1 second after scenario start
+```lua
+ScenEdit_SetTrigger({name="Start", type="time", mode='add', time='...'})
+```
+
+**Action:** Executes a Lua script
+```lua
+ScenEdit_SetAction({name="GameSetup", mode="add", type='LuaScript', ScriptText=script})
+```
+
+**Script:** Your variation logic (the entire [MonteCarloVariations.lua](MonteCarloVariations.lua) content)
+```lua
+local script = [=[
+    if not ITERATION then ITERATION = 1 else ITERATION = ITERATION + 1 end
+
+    -- Your scenario building code here
+    -- This creates units, missions, etc. based on ITERATION
+]=]
+```
+
+### Why 1 Second Delay?
+
+The event triggers at T+1 second (not T+0) because:
+- The scenario needs to fully initialize first
+- Gives the simulation engine time to set up
+- Ensures all scripting functions are available
 
 ## The Two Scripts in This Example
 
 ### [MonteCarlo Scenario Generation.lua](MonteCarlo%20Scenario%20Generation.lua)
 
-**Purpose:** Creates the base scenario and sets up the event system.
+**Purpose:** Creates the scenario framework with the event system.
 
 **Run this once** in the scenario editor to:
-1. Create a blank scenario
-2. Add sides (BLUE and RED)
-3. Set scenario timing
-4. **Embed the variation script into an event** that runs 1 second after scenario start
+1. Create a blank scenario (database, sides, timing)
+2. Embed [MonteCarloVariations.lua](MonteCarloVariations.lua) into an event
+3. Configure the event to trigger at T+1 second
 
 Then save the scenario file.
+
+**Key code:**
+```lua
+-- The variation script is embedded as a string
+local script = [=[
+    -- Entire MonteCarloVariations.lua content goes here
+]=]
+
+-- Create event that runs this script at T+1 second
+local time = os.date('%d/%m/%Y %H:%M:%S', ScenEdit_CurrentTime()+1)
+ScenEdit_SetTrigger({name="Start", type="time", mode='add', time=time})
+ScenEdit_SetAction({name="WeaponFired", mode="add", type='LuaScript', ScriptText=script})
+ScenEdit_SetEvent("LuaInit", {mode='add'})
+ScenEdit_SetEventTrigger("LuaInit", {mode="add", name="Start"})
+ScenEdit_SetEventAction("LuaInit", {mode="add", name="WeaponFired"})
+```
 
 ### [MonteCarloVariations.lua](MonteCarloVariations.lua)
 
@@ -106,10 +178,36 @@ Then save the scenario file.
 
 This script contains:
 1. The `ITERATION` tracking code
-2. Logic to determine what to create based on iteration number
-3. Code to dynamically build units, missions, and forces
+2. Functions to determine what to create based on iteration number
+3. Code to dynamically build units, missions, and forces for both sides
 
-This script is embedded into the scenario by the generation script, so it runs automatically every time.
+**This script is embedded into the event**, so it runs automatically every time the scenario starts.
+
+**Key pattern:**
+```lua
+-- Track iteration
+if not ITERATION then ITERATION = 1 else ITERATION = ITERATION + 1 end
+
+-- Determine configuration
+local function generateMissionSettings(iterationNumber)
+    local settings = {}
+    local group = math.ceil(iterationNumber / 10)  -- Group into sets of 10
+
+    if group == 1 then
+        settings.configuration = "Config A"
+    elseif group == 2 then
+        settings.configuration = "Config B"
+    -- ... etc
+    end
+
+    return settings
+end
+
+local SETTINGS = generateMissionSettings(ITERATION)
+
+-- Build scenario based on settings
+-- ... create units, missions, etc.
+```
 
 ## This Example's Configuration
 
@@ -126,17 +224,48 @@ The included example tests 6 different strike package configurations:
 
 This lets you compare 6 different approaches in a single Monte Carlo analysis (10 runs per configuration for statistical validity).
 
+## Important: When Does ITERATION Reset?
+
+**Within a Single Monte Carlo Session:**
+- ITERATION persists and increments (1, 2, 3... 60)
+- The variable stays in memory throughout the entire batch
+- This is what you want!
+
+**Starting a New Monte Carlo Session:**
+- ITERATION resets to 1
+- Each new Monte Carlo run is independent
+- **This happens even if you don't close Command PE**
+
+**Important:** The global variable is **session-specific** to each Monte Carlo run, not to the Command PE application.
+
+**Examples:**
+
+1. **Within one session:**
+   - Start Monte Carlo with 60 iterations
+   - ITERATION goes from 1 → 60 automatically
+   - Results show variations across all 60 runs
+
+2. **Between sessions:**
+   - Run Monte Carlo batch A (60 iterations) → ITERATION: 1 to 60
+   - Finish and start Monte Carlo batch B → ITERATION: resets to 1
+   - Even if Command PE stayed open the whole time
+
+3. **Using CommandCLI:**
+   - Run: `CommandCLI.exe /runmc scenario.scen 60`
+   - ITERATION: 1 to 60
+   - Run again: `CommandCLI.exe /runmc scenario.scen 60`
+   - ITERATION: resets to 1 again (new session)
+
+This is the correct behavior - each Monte Carlo analysis is independent.
+
 ## How to Use This Technique
 
 ### 1. Create Your Scenario
 
-Run [MonteCarlo Scenario Generation.lua](MonteCarlo%20Scenario%20Generation.lua) in the scenario editor to create your scenario. Customize as needed:
-- Change the database
-- Modify sides and postures
-- Adjust scenario timing
-- Update the embedded variation script
-
-Save the scenario file.
+Run [MonteCarlo Scenario Generation.lua](MonteCarlo%20Scenario%20Generation.lua) in the scenario editor:
+- Customize the blank scenario setup (database, sides, timing)
+- Modify the embedded variation script for your needs
+- Save the scenario file
 
 ### 2. Configure Monte Carlo
 
@@ -148,56 +277,54 @@ In Command PE:
 
 ### 3. Run
 
-Start the Monte Carlo tool and let it run. The `ITERATION` variable will automatically:
-- Start at 1
-- Increment each run
-- Generate different configurations based on your logic
+Start the Monte Carlo tool. For each iteration:
+- Scenario starts
+- Event fires at T+1 second
+- ITERATION increments automatically
+- Script builds scenario based on ITERATION
+- Scenario plays out
 
 ### 4. Analyze Results
 
-Collect and compare results across the different configurations to see which performs best.
+Collect and compare results across the different configurations.
 
 ## Adapting This for Your Own Needs
 
-You can vary anything you want:
+You can vary anything in the event script:
 
 **Force Composition:**
 ```lua
 if ITERATION <= 10 then
-    -- 2 bombers
+    -- Create 2 bombers
 else
-    -- 4 bombers
+    -- Create 4 bombers
 end
 ```
 
 **Loadouts:**
 ```lua
 if ITERATION <= 10 then
-    loadout = 'Harpoon'  -- Anti-ship
+    loadoutid = 12345  -- Harpoon loadout
 else
-    loadout = 'JASSM'    -- Land attack
+    loadoutid = 67890  -- JASSM loadout
 end
 ```
 
 **Tactics:**
 ```lua
 if ITERATION <= 10 then
-    -- High altitude approach
-    altitude = 30000
+    altitude = 30000  -- High altitude
 else
-    -- Low altitude approach
-    altitude = 500
+    altitude = 500    -- Low altitude
 end
 ```
 
 **Timing:**
 ```lua
 if ITERATION <= 10 then
-    -- Day mission
-    start_time = '12:00:00'
+    start_time = current_time + (2 * 3600)  -- Day attack
 else
-    -- Night mission
-    start_time = '00:00:00'
+    start_time = current_time + (14 * 3600)  -- Night attack
 end
 ```
 
@@ -210,38 +337,47 @@ else
 end
 ```
 
-## Key Points for Non-Technical Users
+## Key Concepts for Non-Technical Users
 
-1. **Global Variable**: Think of `ITERATION` as a counter that remembers its value between scenario runs (within the same Monte Carlo batch)
+1. **Event as Game Setup**: The scenario is built dynamically by a script in an event, not pre-built in the editor
 
-2. **Automatic Incrementing**: You don't have to do anything - the variable automatically counts up each run
+2. **Global Variable Persistence**: The `ITERATION` variable remembers its value across runs within the same Monte Carlo batch
 
-3. **Resets Between Batches**: Each new Monte Carlo analysis starts fresh at 1
+3. **Automatic Execution**: Everything happens automatically once you start the Monte Carlo tool
 
-4. **Conditional Logic**: Use simple `if/then` statements to say "if iteration is 1-10, do this; if 11-20, do that"
+4. **Fresh Build Every Time**: Each iteration starts with a blank scenario and builds everything from scratch
 
-5. **Event-Based Execution**: The variation script runs automatically via a timed event at the start of each scenario
-
-6. **Dynamic Creation**: Your script builds the scenario from scratch each run, so it can be completely different each time
+5. **Conditional Logic**: Simple `if/then` statements control what gets built based on iteration number
 
 ## Troubleshooting
 
 **Problem:** All iterations are the same
-- Check that your variation script is embedded in the event
-- Verify the event triggers at scenario start
-- Add `print('ITERATION: '..ITERATION)` to debug
+- Check that your variation script is embedded in the event correctly
+- Verify the event is set to trigger at scenario start
+- Add `print('ITERATION: '..ITERATION)` at the start of your script to see it in the log
 
 **Problem:** Iterations start at wrong number
-- The variable persists from previous runs
-- Start a fresh Monte Carlo batch to reset to 1
+- The variable persists from previous Monte Carlo runs in the same session
+- Close Command PE and reopen to fully reset
+- Or manually reset by editing the scenario
+
+**Problem:** Event doesn't fire
+- Make sure the trigger time is set correctly (T+1 second)
+- Check that the event, trigger, and action are all linked properly
+- Verify the scenario isn't paused at start
 
 **Problem:** Script errors
-- Check syntax in your embedded script
-- Test the variation script manually first
-- Use simple logic before adding complexity
+- Test the variation script manually before embedding it
+- Use simple logic first, then add complexity
+- Check for syntax errors in the embedded script string
 
 ## Summary
 
-The `ITERATION` variable technique transforms the Monte Carlo tool from a simple repeater into a powerful comparison tool. By tracking which run you're on, you can systematically test multiple configurations in a single batch analysis.
+**The technique:**
+1. Create an empty scenario with an event that fires at T+1 second
+2. The event executes a script that tracks ITERATION (global variable)
+3. ITERATION automatically increments each run and persists within the Monte Carlo batch
+4. Use ITERATION to determine what scenario to build
+5. The script dynamically creates units, missions, etc. based on ITERATION
 
-**Key concept:** Use a global variable to track iteration number, then use that number to decide what scenario to generate.
+**Key benefit:** Transform the Monte Carlo tool from a simple repeater into a powerful comparison framework that can systematically test multiple configurations in a single batch.
