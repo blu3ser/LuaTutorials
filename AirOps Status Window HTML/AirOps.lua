@@ -1,47 +1,121 @@
--- Auxiliary Functions
-function table_to_json(tbl)
-  local json = ""
-  local is_array = (#tbl > 0)
+AuxFunctions = {}
 
-  if is_array then
-    json = "["
-  else
-    json = "{"
-  end
+function AuxFunctions.EscapeString(str)
+  -- Escape backslash first, then quote
+  str = str:gsub("\\", "\\\\")
+           :gsub("\"", "\\\"")
+  -- Standard C escape sequences
+  str = str:gsub("\n", "\\n")
+           :gsub("\r", "\\r")
+           :gsub("\t", "\\t")
+           :gsub("\b", "\\b") -- Lua string "\b" is char(8)
+           :gsub("\f", "\\f") -- Lua string "\f" is char(12)
 
-  local first = true
-  for k, v in pairs(tbl) do
-    if not first then
-      json = json .. ", "
-    end
-    first = false
-
-    if is_array then
-      json = json .. value_to_json(v)
-    else
-      json = json .. "\"" .. tostring(k) .. "\": " .. value_to_json(v)
-    end
-  end
-
-  if is_array then
-    json = json .. "]"
-  else
-    json = json .. "}"
-  end
-
-  return json
+  -- Escape other C0 control characters (U+0000 to U+001F)
+  -- Pattern for ASCII 0-7, 11 (VT), 14-31.
+  -- (8=\b, 9=\t, 10=\n, 12=\f, 13=\r are handled above)
+  return str:gsub("([\0-\7\11\14-\31])", function(c)
+    return string.format("\\u%04x", string.byte(c))
+  end)
 end
-function value_to_json(value)
+
+function AuxFunctions.ValueToJson(value)
+  -- Forward declaration or ensure TableToJson is defined before ValueToJson if they call each other.
+  -- In this structure, they are defined sequentially, so direct call is fine.
+
   local t = type(value)
-  if t == "number" or t == "boolean" then
-    return tostring(value)
+  if value == nil then -- Explicitly handle nil
+      return "null"
+  elseif t == "number" then
+      -- JSON doesn't support NaN or Infinity
+      if value ~= value or value == math.huge or value == -math.huge then
+          return "null" -- Or error, depending on desired behavior
+      end
+      return tostring(value)
+  elseif t == "boolean" then
+      return tostring(value)
   elseif t == "string" then
-    return "\"" .. value:gsub("\"", "\\\"") .. "\""
+      return "\"" .. AuxFunctions.EscapeString(value) .. "\""
   elseif t == "table" then
-    return table_to_json(value)
+      return AuxFunctions.TableToJson(value)
   else
-    error("Unsupported value type: " .. t)
+      -- You might want to return "null" for unsupported types or specific userdata
+      -- instead of erroring, depending on your needs.
+      error("Unsupported value type for JSON: " .. t)
   end
+end
+
+function AuxFunctions.TableToJson(tbl)
+  if tbl == nil then return "null" end -- Or "" as your original code returned for nil tbl
+
+  local parts = {} -- Use a table to build parts, then concat
+
+  -- Determine if it's an array or an object
+  local is_array = false
+  local n = 0 -- Number of elements if it's array-like
+  local num_keys = 0 -- Total number of keys
+
+  for k in pairs(tbl) do
+    num_keys = num_keys + 1
+    if type(k) == "number" and k >= 1 and math.floor(k) == k then
+      if k > n then
+        n = k -- Max numeric key
+      end
+    else
+      -- If any key is not a positive integer, it's definitely an object
+      is_array = false
+      break -- No need to check further for array properties
+    end
+    is_array = true -- Candidate for array so far
+  end
+  
+  -- If it was a candidate, further check if it's dense (no holes, all keys 1..n are present)
+  -- And also ensure that the number of numeric keys found (n) matches the total number of keys.
+  if is_array and num_keys ~= n then
+    is_array = false -- It has holes or mixed keys, so it's an object
+  end
+  if num_keys == 0 then -- Empty table
+    is_array = false -- Treat {} as an object "{}". Change if you want "[]".
+  end
+
+
+  if is_array then
+    table.insert(parts, "[")
+    for i = 1, n do
+      table.insert(parts, AuxFunctions.ValueToJson(tbl[i])) -- tbl[i] could be nil, ValueToJson handles it
+      if i < n then
+        table.insert(parts, ", ")
+      end
+    end
+    table.insert(parts, "]")
+  else -- Object
+    table.insert(parts, "{")
+    local first = true
+    -- For consistent key order (optional, but good for testing/diffs)
+    -- Collect and sort keys if desired, otherwise iterate with pairs
+    local keys_to_iterate = {}
+    for k, _ in pairs(tbl) do
+        table.insert(keys_to_iterate, k)
+    end
+    -- Sort keys for predictable output (tostring for comparison robustness)
+    table.sort(keys_to_iterate, function(a,b) return tostring(a) < tostring(b) end)
+
+    for _, k in ipairs(keys_to_iterate) do
+      local v = tbl[k]
+      if not first then
+        table.insert(parts, ", ")
+      end
+      first = false
+
+      -- Keys in JSON objects must be strings and escaped
+      local key_str = AuxFunctions.EscapeString(tostring(k))
+      table.insert(parts, "\"" .. key_str .. "\": ")
+      table.insert(parts, AuxFunctions.ValueToJson(v))
+    end
+    table.insert(parts, "}")
+  end
+
+  return table.concat(parts)
 end
 -- HTML TEMPLATE
 AIROPS_HTML_TEMPLATE=[[
@@ -695,7 +769,7 @@ function GetAircraftsData(playerside)
   end
 
   -- Convert data table to JSON format for use in the UI
-  return table_to_json(data)
+  return AuxFunctions.TableToJson(data)
 end
 
 --- Retrieves the loadout name of a unit
@@ -733,7 +807,7 @@ function GetMissions(playerside)
   end
   
   -- Convert the missions table to JSON for UI display
-  return table_to_json(t_table)
+  return AuxFunctions.TableToJson(t_table)
 end
 
 -- Main execution flow
