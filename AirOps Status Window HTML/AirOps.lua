@@ -484,7 +484,9 @@ AIROPS_HTML_TEMPLATE=[[
       const selectedGstype = $('#gstypeFilter').val();
       const selectedMsubtype = $('#msubtypeFilter').val();
       const selectedMissionName = $('#missionNameFilter').val();
-  
+      if (selectedMissionName === "") {
+        $('#missionNameFilter').val(""); // Asegurar que se limpia el valor en el filtro
+      }
       const filteredData = data.filter(item => {
           const gstypeMatch = !selectedGstype || airTypes[item.gstype] === airTypes[selectedGstype];
           const msubtypeMatch = !selectedMsubtype || getMsubtypeByMissionName(item.mission) === selectedMsubtype;
@@ -535,6 +537,7 @@ AIROPS_HTML_TEMPLATE=[[
           $('#missionNameFilterDiv').show();
       } else {
           $('#missionNameFilterDiv').hide();
+          $('#missionNameFilter').val(""); // Restablecer el filtro de misiones
       }
   
       filterData();  // Aplicar el filtro al cambiar el subtipo de misión
