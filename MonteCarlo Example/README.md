@@ -182,10 +182,10 @@ local script = [=[
 
 local time = os.date('!%Y-%m-%dT%H:%M:%S', ScenEdit_CurrentTime()+1)
 ScenEdit_SetTrigger({name="Start", type="time", mode='add', time=time})
-ScenEdit_SetAction({name="WeaponFired", mode="add", type='LuaScript', ScriptText=script})
+ScenEdit_SetAction({name="GameSetup", mode="add", type='LuaScript', ScriptText=script})
 ScenEdit_SetEvent("LuaInit", {mode='add'})
 ScenEdit_SetEventTrigger("LuaInit", {mode="add", name="Start"})
-ScenEdit_SetEventAction("LuaInit", {mode="add", name="WeaponFired"})
+ScenEdit_SetEventAction("LuaInit", {mode="add", name="GameSetup"})
 ```
 
 > **Note:** The event triggers at T+1 second (not T+0) so you can load the scenario and make changes without triggering the full setup.
