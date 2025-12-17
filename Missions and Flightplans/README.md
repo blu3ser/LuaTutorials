@@ -92,7 +92,7 @@ local aar_mission = ScenEdit_AddMission('BLUE', 'Tanker-Track', 'support', {
 ```
 
 **Key Points:**
-- Zone defined by 2+ reference points
+- Track defined by 2+ reference points
 - Aircraft orbit between points
 - Must be active before consumers arrive (for AAR)
 
@@ -146,7 +146,7 @@ local naval_strike = ScenEdit_AddMission('BLUE', 'Strike-Ships', 'strike', {
 })
 ```
 
-**Important:** For Strikes you can assign units/contacts as targets with `ScenEdit_AssignUnitAsTarget()`
+**Important:** For Strikes you can assign units/contacts as targets with [https://commandlua.github.io/assets/Function_ScenEdit_AssignUnitAsTarget.html] (`ScenEdit_AssignUnitAsTarget()`)
 
 ---
 
@@ -279,10 +279,11 @@ ScenEdit_SetDoctrine({side='BLUE', mission=mission_guid}, {use_refuel_unrep=0})
 
 Flight plan editing allows precise control over aircraft routing, timing, and weapon employment.
 
-### Accessing Flight Plans
+### Generating Flight Plans
 
 ```lua
--- Get all flight plans for a mission
+-- Generate flight plans for a mission
+-- IMPORTANT: If you have already set a TimeOnTarget you don't need to pass a table with the date/time on target
 local flights = ScenEdit_CreateMissionFlightPlan('BLUE', mission_guid, {})
 
 -- Iterate through each aircraft's flight plan
@@ -295,21 +296,20 @@ for k, fp in ipairs(flights) do
     fp:refreshWaypoints()
 end
 ```
-
+https://commandlua.github.io/assets/Function_ScenEdit_CreateMissionFlightPlan.html
 ---
 
 ### Flight Plan Structure
 
-Each flight plan contains a `courseWrapper` array of waypoints:
-
+Each flight plan contains a `courseWrapper` array of waypoints, this is an example for a Stand-off Strike
 ```lua
-course[1]  -- Base/takeoff point
-course[2]  -- Climb waypoint
-course[3]  -- Cruise waypoint
-course[4]  -- Mission area ingress
-course[5]  -- Weapon release point / Patrol start
-course[6]  -- Egress point
-course[7]  -- Return waypoint
+course[1]  -- Takeoff point
+course[2]  -- Hold Start
+course[3]  -- Hold End
+course[4]  -- Turning Point Ingress
+course[5]  -- Weapon release point 
+course[6]  -- Turning Point Egress 
+course[7]  -- Landing Marshall
 course[8]  -- Landing point
 ```
 
@@ -345,7 +345,7 @@ end
 ```
 
 **Key Points:**
-- Waypoint 5 is usually the weapon release/patrol start point
+- Waypoint 5 is usually the weapon release point for Stand Off Strike
 - Multiple vectors complicate enemy defense
 - Standoff launch points keep aircraft outside threat rings
 
@@ -361,7 +361,7 @@ local aar_location = {latitude=28.11, longitude=-81.90}
 local flights = ScenEdit_CreateMissionFlightPlan('BLUE', mission_guid, {})
 
 for k, fp in ipairs(flights) do
-    -- Insert refueling waypoint as waypoint 4 (before station area)
+    -- Insert refueling waypoint as waypoint 4 ( station area)
     fp:insertWaypoint(4, {
         latitude = aar_location.latitude,
         longitude = aar_location.longitude + (k * 0.05),  -- Offset for deconfliction
@@ -374,10 +374,11 @@ end
 
 **Waypoint Types:**
 - `'TurningPoint'` - Navigation waypoint
-- `'Refuel'` - Request AAR at this point
-- `'Patrol'` - Patrol area point
+- `'Refuel'` - Refuel from tanker at this point
+- `'StationStart_Area'` - Patrol area point
 - `'Target'` - Target engagement
 
+For a complete list of waypoint types: https://commandlua.github.io/assets/DataTypes.html#dataType_Waypoint
 ---
 
 ### Deleting Waypoints
