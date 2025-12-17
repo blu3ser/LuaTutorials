@@ -138,7 +138,7 @@ function AuxFunctions.SetNEZRanges(side_name)
       weapons = ScenEdit_GetLoadout({unitname = u.guid})
       if weapons.weapons then
         for k3, w in ipairs(weapons.weapons) do
-          -- Check for AAW missiles (type 2001)
+          -- Check for guided weapons (type 2001)
           if w.wpn_type == 2001 and not weapons_t[w.wpn_dbid] then
             AuxFunctions.SetDoctrineSide(side_name, w.wpn_dbid, 
                                             {target='Aircraft', range='NEZ', salvo=1})
