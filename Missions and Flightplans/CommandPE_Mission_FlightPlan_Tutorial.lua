@@ -495,7 +495,7 @@ local unit = ScenEdit_AddUnit({
   loadoutid=29948, 
   base=ab.name
 })
-ScenEdit_AssignUnitToMission(unit.guid, aew_mission.name)
+ScenEdit_AssignUnitToMission(unit.guid, aew_mission.guid)
 
 -- Add Fighter Sweep aircraft (6x F-35A)
 for i=1, 6 do
@@ -507,7 +507,7 @@ for i=1, 6 do
     loadoutid=26460, 
     base=ab.name
   })
-  ScenEdit_AssignUnitToMission(unit.guid, oca_mission.name)
+  ScenEdit_AssignUnitToMission(unit.guid, oca_mission.guid)
 end
 
 -- Add SEAD aircraft (4x F/A-18G for first mission)
@@ -520,7 +520,7 @@ for i=1, 4 do
     loadoutid=27349, 
     base=ab.name
   })
-  ScenEdit_AssignUnitToMission(unit.guid, 'SEAD')
+  ScenEdit_AssignUnitToMission(unit.guid, sead_mission.guid)
 end
 
 -- Add SEAD aircraft (4x F/A-18G for second mission)
@@ -546,7 +546,7 @@ for i=1, 4 do
     loadoutid=18313, 
     base=ab.name
   })
-  ScenEdit_AssignUnitToMission(unit.guid, 'AAR')
+  ScenEdit_AssignUnitToMission(unit.guid, aar_mission.guid)
 end
 
 -- Add Strike aircraft (2x B-1B)
@@ -559,7 +559,7 @@ for i=1, 2 do
     loadoutid=7359, 
     base=ab.name
   })
-  ScenEdit_AssignUnitToMission(unit.guid, strike_mission.name)
+  ScenEdit_AssignUnitToMission(unit.guid, strike_mission.guid)
 end
 
 -- Add Decoy aircraft (2x F-16C)
@@ -572,28 +572,17 @@ for i=1, 2 do
     loadoutid=13394, 
     base=ab.name
   })
-  ScenEdit_AssignUnitToMission(unit.guid, decoy_mission.name)
+  ScenEdit_AssignUnitToMission(unit.guid, decoy_mission.guid)
 end
 
--- ============================================================================
--- SECTION 10: WEAPON RELEASE AUTHORITY (WRA) CONFIGURATION
--- ============================================================================
-
 --[[
-WRA controls how weapons are employed against different target types.
-This is CRITICAL for realistic weapon employment.
-
-PARAMETERS:
-- salvo: Number of weapons fired per engagement
-- target: Target category
-- range: Employment range ('max', 'NEZ', percentage, or specific value)
-
-EXAMPLES:
-1. Decoy mission: Fire 10 ADM-160 MALDs at max range against land targets
-2. SEAD mission: Fire 2 AGM-88G at 45nm range against radars
+STEP 3: Configure Mission-Specific WRA
+Set weapon employment rules for SEAD and Decoy missions
+This ensures weapons are used appropriately for their mission role
 ]]
 
 -- Decoy WRA: ADM-160 MALD
+-- Fire all decoys at max range against land targets to stress enemy IADS
 AuxFunctions.SetDoctrineMission(decoy_mission, 'BLUE', 2441, {
   salvo=10,          -- Fire 10 decoys
   target='Land',     -- Against land targets
@@ -601,6 +590,7 @@ AuxFunctions.SetDoctrineMission(decoy_mission, 'BLUE', 2441, {
 })
 
 -- SEAD WRA: AGM-88G AARGM-ER (both SEAD missions)
+-- Fire 2 missiles per radar at 45nm range
 AuxFunctions.SetDoctrineMission(sead_mission, 'BLUE', 3588, {
   target='Radar',    -- Against radar targets
   range=45,          -- At 45nm range
@@ -608,10 +598,25 @@ AuxFunctions.SetDoctrineMission(sead_mission, 'BLUE', 3588, {
 })
 
 AuxFunctions.SetDoctrineMission(sead_mission2, 'BLUE', 3588, {
-  target='Radar', 
-  range=45, 
+  target='Radar',
+  range=45,
   salvo=2
 })
+
+-- ============================================================================
+-- SECTION 10: WEAPON RELEASE AUTHORITY (WRA) CONFIGURATION
+-- ============================================================================
+
+--[[
+WRA controls how weapons are employed against different target types.
+This section configures side-level WRA that applies to all missions
+unless overridden by mission-specific settings.
+
+PARAMETERS:
+- salvo: Number of weapons fired per engagement
+- target: Target category
+- range: Employment range ('max', 'NEZ', percentage, or specific value)
+]]
 
 -- ============================================================================
 -- SECTION 11: RED FORCE SETUP - TARGETS AND IADS
@@ -839,7 +844,7 @@ for i = 1, 8 do
     loadoutid=11076, 
     base=red_ab.name
   })
-  ScenEdit_AssignUnitToMission(unit.guid, dca_mission.name)
+  ScenEdit_AssignUnitToMission(unit.guid, dca_mission.guid)
 end
 
 -- Create Red AEW support
