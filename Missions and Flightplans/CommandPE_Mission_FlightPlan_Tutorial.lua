@@ -226,7 +226,7 @@ local enemy_coord = {latitude=25.89, longitude=-80.87}
 TUTORIAL: Creating Reference Points for Mission Zones
 
 We'll use World_GetPointFromBearing() to calculate positions relative to
-the enemy position. This is more flexible than hardcoded coordinates.
+the enemy position. 
 
 Syntax: World_GetPointFromBearing({
   latitude = starting_latitude,
@@ -340,7 +340,7 @@ ScenEdit_SetMission('BLUE', 'OCA Sweep', {
   prosecutionzone=oca_area -- Can prosecute targets in larger area
 })
 
--- Enable air-to-air refueling for the side
+-- Disable air-to-air refueling for the side
 ScenEdit_SetDoctrine({side="BLUE"}, {use_refuel_unrep=1})
 
 -- ============================================================================
@@ -399,6 +399,9 @@ ScenEdit_SetMission('BLUE', 'SEAD#2', {
 })
 ScenEdit_SetEMCON('mission', sead_mission2.guid, 'Radar=Passive;OECM=Active')
 
+-- Enable AAR for SEAD missions (they should refuel at specific waypoints)
+ScenEdit_SetDoctrine({side='BLUE', mission=sead_mission.guid}, {use_refuel_unrep=0})
+ScenEdit_SetDoctrine({side='BLUE', mission=sead_mission2.guid}, {use_refuel_unrep=0})
 -- ============================================================================
 -- SECTION 7: MISSION CREATION - AAR (AIR-TO-AIR REFUELING)
 -- ============================================================================
@@ -425,9 +428,7 @@ local aar_mission = ScenEdit_AddMission('BLUE', 'AAR', 'support', {zone={'AAR1',
 ScenEdit_SetMission('BLUE', aar_mission.guid, {OneThirdRule=false})
 aar_mission.TimeOnTargetStation = aar_time
 
--- Disable AAR for SEAD missions (they should refuel only at specific waypoints)
-ScenEdit_SetDoctrine({side='BLUE', mission=sead_mission.guid}, {use_refuel_unrep=0})
-ScenEdit_SetDoctrine({side='BLUE', mission=sead_mission2.guid}, {use_refuel_unrep=0})
+
 
 -- ============================================================================
 -- SECTION 8: MISSION CREATION - STRIKE AND DECOY
