@@ -1,7 +1,10 @@
-# Command PE - Mission Creation & Flight Plan Editing Guide
+# Command Modern Operations - Mission Creation & Flight Plan Editing Guide
+
+#### CPE 2.4.3 / CMO v1.09 / (Build 1777)
 
 A comprehensive reference for creating missions and manipulating flight plans through Lua scripting in Command Professional Edition.
 
+IMPORTANT: If you are using a version earlier than 2.4.3 / v1.09 / Build 1777, some of these Lua instructions will not work.
 ---
 
 ## Table of Contents
