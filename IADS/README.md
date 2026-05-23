@@ -300,9 +300,11 @@ small fraction of Serbia's mobile SAMs were destroyed, and the IADS
 was still scoring engagements on the campaign's last day. (See
 *NATO's Air War for Kosovo*, RAND, 2001.)
 
-You can model this with a recurring "tick" event that polls recovery
-timers set by the destruction handlers. The tick wiring is
-pattern-agnostic — it works on top of either Pattern A or Pattern B.
+You can model this by scheduling a one-shot `Time` event from inside
+the destruction handler. CMO fires it at the specified moment, runs
+the restoration handler, and the event self-destructs. No polling
+tick, no per-sector timer state to track — the kernel does the
+waiting for you.
 
 ```lua
 -- 1. In Comms_Destroyed, after the unit sweep, schedule the recovery.
@@ -312,12 +314,27 @@ function Comms_Destroyed(sector)
     local u = ScenEdit_GetUnit({guid = v.guid})
     if u then ScenEdit_SetUnit({guid = u.guid, outofcomms = true}) end
   end
-  sd._comms_recover_at = ScenEdit_CurrentTime() + math.random(60*60, 180*60)
   ScenEdit_SpecialMessage('BLUE',
     'INTEL: Comms #'..sector..' destroyed — RED sector is off the data link.')
+  Schedule_CommsRecovery(sector, math.random(60, 180))   -- 1–3 hours
 end
 
--- 2. Restoration handler — flip the units back, broadcast intel.
+-- 2. One-shot Time event that fires Comms_Restored at the chosen time.
+function Schedule_CommsRecovery(sector, minutes)
+  local recover_at = ScenEdit_CurrentTime() + minutes * 60
+  local name = 'Comms Recovery '..sector..'-'..tostring(recover_at)
+  local mode = 'add'
+  ScenEdit_SetTrigger({mode=mode, type='Time',
+    name=name..'-trigg', Time=recover_at})
+  ScenEdit_SetAction({mode=mode, type='LuaScript',
+    name=name..'-action',
+    ScriptText="Comms_Restored('"..sector.."')"})
+  ScenEdit_SetEvent(name, {mode=mode, IsRepeatable=false})
+  ScenEdit_SetEventTrigger(name, {mode=mode, name=name..'-trigg'})
+  ScenEdit_SetEventAction (name, {mode=mode, name=name..'-action'})
+end
+
+-- 3. Restoration handler — flip the units back, broadcast intel.
 function Comms_Restored(sector)
   for _, v in ipairs(IADS_DATA[sector].units) do
     local u = ScenEdit_GetUnit({guid = v.guid})
@@ -326,28 +343,14 @@ function Comms_Restored(sector)
   ScenEdit_SpecialMessage('BLUE',
     'INTEL: Comms #'..sector..' back online — landline repair completed.')
 end
-
--- 3. Tick: polls every five minutes, fires any recoveries that are due.
-function IADS_Tick()
-  local now = ScenEdit_CurrentTime()
-  for sector, sd in pairs(IADS_DATA) do
-    if sd._comms_recover_at and now >= sd._comms_recover_at then
-      sd._comms_recover_at = nil
-      Comms_Restored(sector)
-    end
-  end
-end
-
--- 4. Wire the tick once, anywhere after the sector builders.
-local mode = 'add'
-ScenEdit_SetTrigger({mode=mode, type='RegularTime',
-  name='IADS-tick-trigg', interval='Fiveminutes'})
-ScenEdit_SetAction({mode=mode, type='LuaScript',
-  name='IADS-tick-action', ScriptText='IADS_Tick()'})
-ScenEdit_SetEvent('IADS Tick', {mode=mode, IsRepeatable=true})
-ScenEdit_SetEventTrigger('IADS Tick', {mode=mode, name='IADS-tick-trigg'})
-ScenEdit_SetEventAction ('IADS Tick', {mode=mode, name='IADS-tick-action'})
 ```
+
+Same event/trigger/action shape as section 2's kill wiring — just a
+`Time` trigger instead of `UnitDestroyed`, and `IsRepeatable=false`
+because the event has done its job after firing once. The trigger
+name is suffixed with the absolute recovery time so a second
+destruction of the same sector's comms doesn't collide with the
+first event's name in the CMO event table.
 
 ### Design notes
 
@@ -507,7 +510,7 @@ and branches.
 
 ---
 
-## 11. Things that bit me, so you don't get bitten
+## 11. Common pitfalls
 
 - **`TargetType=4`** is `Facility` in the trigger filter. Don't pass
   the string `'Facility'` — the filter expects the integer code.
