@@ -1,4 +1,4 @@
-# Building an IADS in CMO Lua — Tutorial
+# Building an IADS in CMO Lua
 
 Companion to `IADS_script.lua`. The script builds a small two-sector
 RED Integrated Air Defense System over Florida and wires destruction
@@ -260,9 +260,12 @@ Two design notes:
 
 - `jitter(lat, lon, lat_amp, lon_amp)` is a tiny local helper that
   returns a point with `±100/amp` degree noise. Smaller `amp` = wider
-  spread. The SA-15s use a two-step jitter: a `amp=500/600` point
-  near HQ as the cluster center, then `amp=3000` tight noise around
-  that point. The SA-21 sits on its own `amp=500/600` point from HQ.
+  spread. The SA-21 uses `amp=500/600` for a random point near HQ.
+
+- The SA-15s don't use `jitter` — they use `World_GetPointFromBearing`
+  to place one battery in each compass quadrant (0/90/180/270 with
+  ±30° bearing jitter) at 4–8 nm from HQ. That gives a visible ring
+  instead of a tight random cluster.
 
 Both are non-deterministic — every run produces a slightly different
 layout, which is the point for a training scenario.

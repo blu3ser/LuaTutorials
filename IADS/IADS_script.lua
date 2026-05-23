@@ -212,14 +212,17 @@ function AddIADSSector(sector)
     {TargetSide='RED', TargetType=4, SpecificUnitID=_u.guid},
     "EW_Destroyed('"..sector.."')")
 
-  -- SA-15 ring near the sector center -------------------------
-  -- Shooters start passive — they rely on the EW radar for cueing.
-  local sam_lat, sam_lon = jitter(hq.latitude, hq.longitude, 500, 600)
-  for _ = 1, 4 do
-    _lat, _lon = jitter(sam_lat, sam_lon, 3000, 3000)
+  -- SA-15 ring around HQ ---------------------------------------
+  -- One battery per compass quadrant, 4–8 nm out, ±30° bearing
+  -- jitter so the ring isn't a perfect square. Shooters start
+  -- passive — they rely on the EW radar for cueing.
+  for i = 1, 4 do
+    local bearing = (i - 1) * 90 + math.random(-30, 30)
+    _p = World_GetPointFromBearing({latitude=hq.latitude, longitude=hq.longitude,
+      bearing=bearing, distance=math.random(4, 8)})
     _u = ScenEdit_AddUnit({side='RED', type='Facility',
       name='SAM SA-15 #'..RandomTxt(4), dbid=DBID.sa15,
-      latitude=_lat, longitude=_lon, autodetectable=true})
+      latitude=_p.latitude, longitude=_p.longitude, autodetectable=true})
     pcall(ScenEdit_SetEMCON, 'Unit', _u.guid, 'Radar=Passive')
     table.insert(sd.units, {name=_u.name, guid=_u.guid, classname=_u.classname})
   end
