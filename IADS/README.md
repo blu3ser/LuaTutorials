@@ -18,7 +18,7 @@ detect, command posts coordinate, comms relay tracks, and shooters
 engage. Take any piece out and the rest of the network has to
 compensate.
 
-We model that with five buildings per sector:
+We model that with four buildings per sector:
 
 | Building          | Role in real life                    | Destruction effect                       |
 | ----------------- | ------------------------------------ | ---------------------------------------- |
@@ -26,12 +26,15 @@ We model that with five buildings per sector:
 | **Comms hub**     | Data link between HQ and shooters    | Units flipped to `outofcomms=true`       |
 | **Power**         | Electricity to radars and missiles   | Radars forced passive + OODA hit         |
 | **EW radar**      | Long-range early warning / cueing    | Shooter radars flip from passive → active|
-| **Search radar**  | Sector fire-control search (Nebo-M)  | none directly — it *is* a shooter        |
 
 Plus the actual shooters: one SA-21 battery and four SA-15 batteries
-per sector. Shooters are **created in passive EMCON** so they rely on
-the EW + sector search radars for cueing — that's what makes the EW
-death effect observable.
+per sector, and a Nebo-M EW radar — a multi-band counter-stealth
+set that complements the forward Tin Shield (DBID 1848 is the
+S-band Tall Rack component of the Nebo-M complex). The Nebo-M
+isn't a separate "lethal" building; it sits in the sector's unit
+list and feels every other building's death effect. Shooters are
+**created in passive EMCON** so they rely on the EW radars for
+cueing — that's what makes the EW death effect observable.
 
 ---
 

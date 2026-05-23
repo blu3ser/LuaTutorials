@@ -11,7 +11,7 @@
   Comms hub         615    Sector goes off the data link (outofcomms)
   Power generator   119    Radars forced passive + OODA penalty
   EW radar          1330   OODA detection penalty (no long-range cue)
-  Sector search     1848   (part of sector unit list — no special effect)
+  Nebo-M radar      1848   (part of sector unit list — no special effect)
   SA-15 / SA-21     2163 / 3142   firing units
 
   Pattern: every "lethal" building registers a UnitDestroyed event
@@ -155,7 +155,7 @@ local DBID = {
   comms     = 615,    -- Building (Communication Hub)
   power     = 119,    -- Structure (Generator)
   ew_radar  = 1330,   -- Radar (Tin Shield A [5N59])         -- long-range EW
-  search    = 1848,   -- Radar (Tall Rack [Nebo-M, S-Band])  -- sector search
+  nebo      = 1848,   -- Radar (Tall Rack [Nebo-M, S-Band])  -- secondary EW
   sa15      = 2163,   -- SAM Plt (SA-15d Gauntlet [Tor-M2K])
   sa21      = 3142,   -- SAM Bn  (SA-21 Growler [S-400])
 }
@@ -211,10 +211,10 @@ function AddIADSSector(sector)
     {TargetSide='RED', TargetType=4, SpecificUnitID=_u.guid},
     "EW_Destroyed('"..sector.."')")
 
-  -- Sector search radar (Nebo-M) — feels the effects ---------
+  -- Nebo-M EW radar — feels the effects, has no kill handler ----
   _lat, _lon = jitter(hq.latitude, hq.longitude, 500, 600)
   _u = ScenEdit_AddUnit({side='RED', type='Facility',
-    name='Nebo-M #'..sector, dbid=DBID.search,
+    name='Nebo-M #'..sector, dbid=DBID.nebo,
     latitude=_lat, longitude=_lon})
   table.insert(sd.units, {name=_u.name, guid=_u.guid, classname=_u.classname})
 
