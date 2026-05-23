@@ -29,7 +29,7 @@ We model that with four buildings per sector:
 
 Plus the actual shooters: one SA-21 battery and four SA-15 batteries
 per sector. Shooters are **created in passive EMCON** so they rely
-on the EW radar for cueing — that's what makes the EW death effect
+on the EW radar for cueing (they will turn on their Fire Control Radars to fire) that's what makes the EW death effect
 observable.
 
 ---
@@ -155,8 +155,8 @@ fires, the live Lua state may be a fresh process (save → reload →
 resume). So actions store *source text*, and that text must reference
 globally-reachable functions and data:
 
-- `HQ_Destroyed`, `Comms_Destroyed`, etc. are top-level globals in
-  the script — they survive a reload (see section 9).
+- `HQ_Destroyed`, `Comms_Destroyed`, etc. are top-level function globals in
+  the script they survive a reload but not a CMO restart (see section 9).
 - `IADS_DATA` (and `IADS_LOOKUP`, if used) is a top-level global
   table — same.
 - In Pattern A, the sector id `'N'` / `'S'` is **interpolated into
@@ -186,10 +186,7 @@ function HQ_Destroyed(sector)
 end
 ```
 
-The `if u then` guard matters: if BLUE strikes the HQ and a SAM in
-the same minute, the SAM may already be gone by the time the HQ
-event fires. Without the guard, `ScenEdit_SetUnit` on a dead guid
-throws.
+The `if u then` guard matters: if BLUE strikes the SAM first and then the HQ, the SAM may already be gone by the time the HQ event fires. Without the guard, `ScenEdit_SetUnit` on a dead guid throws.
 
 ### What each effect does
 
@@ -218,7 +215,7 @@ throws.
   in a real IADS forces emission, not slower reactions.
 
 Effects **stack**. Kill HQ then Comms and a sector unit ends up
-both slow *and* off-net. That's by design — strike planners get to
+both slow *and* off-net. That's by design, strike planners get to
 choose which capability to take out first.
 
 ---
@@ -232,7 +229,7 @@ IADS_DATA = {
     comms     = '<guid>',
     power     = '<guid>',
     ew_radar  = '<guid>',
-    units     = {{name=..., guid=..., classname=...}, ...},  -- shooters
+    units     = {{name=..., guid=..., classname=...}, ...},  -- EW radar + shooters
   },
   S = { ... },
 }
@@ -240,9 +237,14 @@ IADS_DATA = {
 
 Two design notes:
 
-1. **HQ / Comms / Power / EW are not in `units`.** Effects walk
-   `units`, so the buildings themselves aren't affected by their own
-   destruction event — only the shooters are.
+1. **HQ / Comms / Power are not in `units`, but the EW radar is.**
+   Effects walk `units`. The C2 / support buildings have nothing
+   meaningful to degrade — no OODA, no EMCON, no comms state — so
+   they sit out. The EW radar is a sensor with reaction times and
+   an emitter, so it gets the same degradation as the shooters when
+   HQ, Comms, or Power dies. When the EW radar itself is destroyed,
+   `EW_Destroyed` still walks `units` but the dead EW guid resolves
+   to `nil` and is skipped — no special case needed.
 2. **`units` is a flat array.** No grouping by type, no indexing by
    guid. That's deliberate: every handler does the same thing (walk
    all of them), so an array is the simplest fit.

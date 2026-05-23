@@ -205,6 +205,9 @@ function AddIADSSector(sector)
     name='EW Radar #'..sector, dbid=DBID.ew_radar,
     latitude=_p.latitude, longitude=_p.longitude})
   sd.ew_radar = _u.guid
+  -- EW radar is also a unit: it has OODA and can be flagged
+  -- outofcomms, so HQ/Comms/Power deaths should degrade it too.
+  table.insert(sd.units, {name=_u.name, guid=_u.guid, classname=_u.classname})
   AddUnitKilledEvent('EW Destroyed Sector #'..sector,
     {TargetSide='RED', TargetType=4, SpecificUnitID=_u.guid},
     "EW_Destroyed('"..sector.."')")
