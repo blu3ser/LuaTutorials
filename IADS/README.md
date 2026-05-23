@@ -28,13 +28,9 @@ We model that with four buildings per sector:
 | **EW radar**      | Long-range early warning / cueing    | Shooter radars flip from passive → active|
 
 Plus the actual shooters: one SA-21 battery and four SA-15 batteries
-per sector, and a Nebo-M EW radar — a multi-band counter-stealth
-set that complements the forward Tin Shield (DBID 1848 is the
-S-band Tall Rack component of the Nebo-M complex). The Nebo-M
-isn't a separate "lethal" building; it sits in the sector's unit
-list and feels every other building's death effect. Shooters are
-**created in passive EMCON** so they rely on the EW radars for
-cueing — that's what makes the EW death effect observable.
+per sector. Shooters are **created in passive EMCON** so they rely
+on the EW radar for cueing — that's what makes the EW death effect
+observable.
 
 ---
 
@@ -246,7 +242,7 @@ Two design notes:
 
 1. **HQ / Comms / Power / EW are not in `units`.** Effects walk
    `units`, so the buildings themselves aren't affected by their own
-   destruction event — only the shooters and the search radar are.
+   destruction event — only the shooters are.
 2. **`units` is a flat array.** No grouping by type, no indexing by
    guid. That's deliberate: every handler does the same thing (walk
    all of them), so an array is the simplest fit.
@@ -262,9 +258,9 @@ Two design notes:
 
 - `jitter(lat, lon, lat_amp, lon_amp)` is a tiny local helper that
   returns a point with `±100/amp` degree noise. Smaller `amp` = wider
-  spread. The SA-15s use `amp=3000` (very tight cluster around the
-  search radar); the search radar itself uses `amp=500/600` (looser
-  spread from HQ).
+  spread. The SA-15s use a two-step jitter: a `amp=500/600` point
+  near HQ as the cluster center, then `amp=3000` tight noise around
+  that point. The SA-21 sits on its own `amp=500/600` point from HQ.
 
 Both are non-deterministic — every run produces a slightly different
 layout, which is the point for a training scenario.
@@ -280,7 +276,7 @@ CMO is picky about creation order. The script follows the safe order:
 3. `ScenEdit_SetSidePosture` — **bidirectional** (set both A→B and
    B→A; one direction is not enough).
 4. `ScenEdit_SetStartTime` and `ScenEdit_SetTime`.
-5. Facilities (HQ, Comms, Power, EW, search radar, SAMs).
+5. Facilities (HQ, Comms, Power, EW radar, SAMs).
 6. Events — registered immediately after each owning facility is
    created, so the `SpecificUnitID` is available.
 
